@@ -2,8 +2,6 @@
 
 #include "FociCharacter.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -11,11 +9,13 @@
 #include "EnhancedInputSubsystems.h"
 
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
 
+#include "Foci/Components/HitboxController.h"
 #include "MarleMovementComponent.h"
 #include "Ladder.h"
-#include "Actors/Interactable.h"
-
+#include "Foci/Actors/Interactable.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFociCharacter
@@ -59,6 +59,10 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	InteractTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("Interact Trigger"));
 	InteractTrigger->SetupAttachment(RootComponent);
+
+	HitboxController = CreateDefaultSubobject<UHitboxController>(TEXT("Hitbox Controller"));
+	HitboxController->SetupAttachment(GetMesh());
+	HitboxController->HitDetectedDelegate.BindUObject(this, &AFociCharacter::HitTarget);
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -75,14 +79,16 @@ void AFociCharacter::Tick(float DeltaSeconds)
 		}
 		AddMovementInput(Destination - GetActorLocation());
 	}
+	if (HasTarget())
+	{
+		LookAtTarget();
+	}
 }
 
 void AFociCharacter::BeginPlay()
 {
-	// Call the base class  
 	Super::BeginPlay();
 
-	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -129,6 +135,28 @@ void AFociCharacter::SetInputEnabled(bool bEnabled)
 	bInputEnabled = bEnabled;
 }
 
+bool AFociCharacter::HasTarget() const
+{
+	return FocusTarget.IsValid();
+}
+
+void AFociCharacter::LookAtTarget()
+{
+	const FVector Difference = FocusTarget->GetActorLocation() - GetActorLocation();
+	FRotator ActorRotation = GetActorRotation();
+
+	const double OldYaw = ActorRotation.Yaw;
+	const double NewYaw = FMath::RadiansToDegrees(FMath::Atan2(Difference.Y, Difference.X));
+	const double YawDifference = FMath::UnwindDegrees(NewYaw - OldYaw);
+	ActorRotation.Yaw = NewYaw;
+
+	SetActorRotation(ActorRotation);
+
+	FRotator CameraRotation = Controller->GetControlRotation();
+	CameraRotation.Add(0.0, YawDifference, 0.0);
+	Controller->SetControlRotation(CameraRotation);
+}
+
 void AFociCharacter::GrabLadder(ALadder* Ladder)
 {
 	MarleMovementComponent->GrabLadder(Ladder);
@@ -137,9 +165,16 @@ void AFociCharacter::GrabLadder(ALadder* Ladder)
 void AFociCharacter::Interact()
 {
 	TSet<AActor*> OverlappingActors;
-	InteractTrigger->GetOverlappingActors(OverlappingActors, TSubclassOf<AInteractable>());
+	InteractTrigger->GetOverlappingActors(OverlappingActors);
+	bool bFoundTarget = false;
 	for (AActor* Actor : OverlappingActors)
 	{
+		if (Actor->ActorHasTag(TEXT("Targetable")))
+		{
+			bFoundTarget = true;
+			SetFocusTarget(Actor);
+			continue;
+		}
 		AInteractable* Interactable = Cast<AInteractable>(Actor);
 		if (!Interactable)
 		{
@@ -147,12 +182,35 @@ void AFociCharacter::Interact()
 		}
 		Interactable->Interact(this);
 	}
+	if (!bFoundTarget)
+	{
+		ClearFocusTarget();
+	}
 }
+
+void AFociCharacter::SetFocusTarget(AActor* Target)
+{
+	FocusTarget = Target;
+	MarleMovementComponent->bOrientRotationToMovement = false;
+
+	FRotator ActorRotation = GetActorRotation();
+
+	const FVector Difference = FocusTarget->GetActorLocation() - GetActorLocation();
+	const double NewYaw = FMath::RadiansToDegrees(FMath::Atan2(Difference.Y, Difference.X));
+	ActorRotation.Yaw = NewYaw;
+	SetActorRotation(ActorRotation);
+}
+
+void AFociCharacter::ClearFocusTarget()
+{
+	FocusTarget = nullptr;
+	MarleMovementComponent->bOrientRotationToMovement = true;
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////
 // Input
-
 void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
@@ -165,8 +223,11 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFociCharacter::Look);
 
-		//Jumping
+		//A-button equivalent
 		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Triggered, this, &AFociCharacter::Primary);
+
+		//B-button equivalent
+		EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Triggered, this, &AFociCharacter::Secondary);
 
 	}
 
@@ -178,35 +239,37 @@ void AFociCharacter::Move(const FInputActionValue& Value)
 	{
 		return;
 	}
-	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
-
-	if (Controller != nullptr)
+	if (!Controller)
 	{
-		if (bMovingToLocation)
-		{
-			return;
-		}
-		if (MarleMovementComponent && MarleMovementComponent->UseDirectInput())
-		{
-			AddMovementInput(GetActorForwardVector(), MovementVector.Y);
-			AddMovementInput(GetActorRightVector(), MovementVector.X);
-			return;
-		}
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+		return;
 	}
+	if (bMovingToLocation)
+	{
+		return;
+	}
+
+	FVector2D MovementVector = Value.Get<FVector2D>();
+	if (MarleMovementComponent && MarleMovementComponent->UseDirectInput())
+	{
+		AddMovementInput(FVector::ForwardVector, MovementVector.Y);
+		AddMovementInput(FVector::RightVector, MovementVector.X);
+		return;
+	}
+	if (FocusTarget.IsValid())
+	{
+		AddMovementInput(GetActorForwardVector(), MovementVector.Y);
+		AddMovementInput(GetActorRightVector(), MovementVector.X);
+		return;
+	}
+	// find out which way is forward
+	const FRotator Rotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(ForwardDirection, MovementVector.Y);
+	AddMovementInput(RightDirection, MovementVector.X);
 }
 
 void AFociCharacter::Look(const FInputActionValue& Value)
@@ -240,5 +303,7 @@ void AFociCharacter::Primary(const FInputActionValue& Value)
 	Interact();
 }
 
-
-
+void AFociCharacter::Secondary(const FInputActionValue& Value)
+{
+	Attack();
+}
