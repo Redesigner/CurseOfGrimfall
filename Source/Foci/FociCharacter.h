@@ -112,9 +112,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void MoveToLocation(FVector Location);
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void Mantle(FVector ResultingLocation);
+
 
 	UFUNCTION(BlueprintCallable)
 	void SetInputEnabled(bool bEnabled);
+
 
 	UFUNCTION(BlueprintCallable)
 	bool HasTarget() const;

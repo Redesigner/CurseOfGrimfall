@@ -23,13 +23,6 @@ class FOCI_API UMarleMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 
-	enum EMantlingStatus : uint8
-	{
-		NotMantling,
-		VerticalClimb,
-		HorizontalClimb
-	};
-
 	/// How far away from the character horizontally we will check for available ledges when colliding with a surface
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Climbing|Ledges", meta = (AllowPrivateAccess = "true", ClampMin = 0.0f))
 	float LedgeHorizontalReach = 60.0f;
@@ -89,6 +82,9 @@ protected:
 public:
 	virtual FRotator GetDeltaRotation(float DeltaTime) const override;
 
+	UFUNCTION(BlueprintCallable)
+	void FinishMantling();
+
 	void JumpAction();
 
 	void GrabLadder(class ALadder* Ladder);
@@ -103,7 +99,7 @@ private:
 
 	void GrabLedge(UPrimitiveComponent* LedgeComponent, const FVector& WallNormal, const FVector& LedgeLocation);
 
-	FVector GetLedgeMovement(const float DeltaTime) const;
+	// FVector GetLedgeMovement(const float DeltaTime) const;
 
 	FVector GetGrabLocation() const;
 
@@ -124,7 +120,7 @@ private:
 
 	void ReleaseLadder();
 
-	EMantlingStatus MantlingStatus = NotMantling;
+	bool bMantling = false;
 
 	EClimbingSurfaceType ClimbingSurfaceType = EClimbingSurfaceType::None;
 

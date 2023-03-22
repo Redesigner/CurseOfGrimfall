@@ -6,6 +6,7 @@
 #include "VisualLogger/VisualLogger.h"
 
 #include "Ladder.h"
+#include "FociCharacter.h"
 
 FRotator UMarleMovementComponent::ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const
 {
@@ -154,6 +155,14 @@ FRotator UMarleMovementComponent::GetDeltaRotation(float DeltaTime) const
 	}
 }
 
+void UMarleMovementComponent::FinishMantling()
+{
+	bMantling = false;
+	// UpdatedComponent->SetWorldLocation(ClimbSnapLocation);
+	SetMovementMode(MOVE_Falling);
+	Velocity = FVector::ZeroVector;
+}
+
 void UMarleMovementComponent::JumpAction()
 {
 	if (MovementMode == EMovementMode::MOVE_Custom && CustomMovementMode == 0)
@@ -257,7 +266,7 @@ bool UMarleMovementComponent::CanGrabLedge(UPrimitiveComponent* CapsuleComponent
 
 bool UMarleMovementComponent::IsMantling() const
 {
-	return MantlingStatus != EMantlingStatus::NotMantling;
+	return bMantling;
 }
 
 void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
@@ -266,7 +275,7 @@ void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 	SetMovementMode(EMovementMode::MOVE_Custom, 0);
 	ClimbingSurfaceType = EClimbingSurfaceType::Ladder;
 	LadderBase = Ladder;
-	MantlingStatus = EMantlingStatus::NotMantling;
+	bMantling = false;
 
 	const FVector HandLocation = GetGrabLocation();
 	DistanceAlongLadder = LadderBase->GetGrabDistance(HandLocation);
@@ -298,24 +307,13 @@ void UMarleMovementComponent::GrabLedge(UPrimitiveComponent* LedgeComponent, con
 	// SetBase(LedgeComponent);
 }
 
-FVector UMarleMovementComponent::GetLedgeMovement(const float DeltaTime) const
-{
-	switch (MantlingStatus)
-	{
-	default:
-		return ClimbSnapLocation - UpdatedComponent->GetComponentLocation();
-	case EMantlingStatus::VerticalClimb:
-		return FVector(0.0f, 0.0f, ClimbSnapLocation.Z - UpdatedComponent->GetComponentLocation().Z);
-	}
-}
-
 void UMarleMovementComponent::ClimbLedge()
 {
 	if (IsMantling())
 	{
 		return;
 	}
-	MantlingStatus = EMantlingStatus::VerticalClimb;
+	bMantling = true;
 	UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(UpdatedComponent);
 	if (!PrimitiveComponent)
 	{
@@ -337,6 +335,10 @@ void UMarleMovementComponent::ClimbLedge()
 
 	ClimbSnapLocation = HitResult.Location;
 	// DrawDebugDirectionalArrow(GetWorld(), SweepStartLocation, SweepEndLocation, 10.0f, FColor::Blue, false, 60.0f, 0U, 2.0f);
+
+	ACharacter* Owner = CharacterOwner.Get();
+	AFociCharacter* FociCharacter = Cast<AFociCharacter>(Owner);
+	FociCharacter->Mantle(ClimbSnapLocation);
 }
 
 void UMarleMovementComponent::ClimbLadder(FVector InputVector, float DeltaTime)
@@ -382,6 +384,10 @@ void UMarleMovementComponent::PhysLadder(float DeltaTime, int32 Iterations)
 	{
 		UE_LOG(LogTemp, Display, TEXT("Reached end of ladder"))
 		ReleaseLadder();
+
+		ACharacter* Owner = CharacterOwner.Get();
+		AFociCharacter* FociCharacter = Cast<AFociCharacter>(Owner);
+		FociCharacter->Mantle(ClimbSnapLocation);
 		return;
 	}
 	if (LadderBase->IsBottom(DistanceAlongLadder) && ClimbingVelocity < 0.0f)
@@ -393,27 +399,18 @@ void UMarleMovementComponent::PhysLadder(float DeltaTime, int32 Iterations)
 
 void UMarleMovementComponent::PhysMantling(float DeltaTime, int32 Iterations)
 {
-	FVector DeltaLocation = GetLedgeMovement(DeltaTime);
+	if (bMantling)
+	{
+		ApplyRootMotionToVelocity(DeltaTime);
+		MoveUpdatedComponent(Velocity * DeltaTime, UpdatedComponent->GetComponentRotation(), false);
+		return;
+	}
+	//FVector DeltaLocation = GetLedgeMovement(DeltaTime);
+	FVector DeltaLocation = ClimbSnapLocation - UpdatedComponent->GetComponentLocation();
 	if (DeltaLocation.SizeSquared() > FMath::Square(MantleSpeed * DeltaTime))
 	{
 		DeltaLocation.Normalize();
 		DeltaLocation *= MantleSpeed * DeltaTime;
-	}
-	else
-	{
-		// Move through our states
-		switch (MantlingStatus)
-		{
-		case VerticalClimb:
-			MantlingStatus = HorizontalClimb;
-			break;
-		case HorizontalClimb:
-			UE_LOG(LogTemp, Display, TEXT("Mantling complete"))
-			ReleaseLedge();
-			break;
-		default:
-			break;
-		}
 	}
 	FHitResult HitResult;
 	SafeMoveUpdatedComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), false, HitResult);
@@ -423,7 +420,7 @@ void UMarleMovementComponent::ReleaseLedge()
 { 
 	UE_LOG(LogTemp, Display, TEXT("Released Ledge"))
 	Velocity = FVector::ZeroVector;
-	MantlingStatus = NotMantling;
+	bMantling = false;
 	SetMovementMode(MOVE_Falling);
 	ClimbingSurfaceType = EClimbingSurfaceType::None;
 }
@@ -434,7 +431,7 @@ void UMarleMovementComponent::ReleaseLadder()
 	ClimbSnapLocation = GetFloorPositionFront();
 	LadderBase = nullptr;
 	DistanceAlongLadder = 0.0f;
-	MantlingStatus = EMantlingStatus::VerticalClimb;
+	bMantling = true;
 }
 
 FVector UMarleMovementComponent::GetGrabLocation() const
