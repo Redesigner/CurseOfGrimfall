@@ -11,6 +11,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #include "Foci/Components/HitboxController.h"
 #include "MarleMovementComponent.h"
@@ -57,12 +58,19 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->SetupAttachment(RootComponent);
+	FirstPersonCamera->bUsePawnControlRotation = true;
+
 	InteractTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("Interact Trigger"));
 	InteractTrigger->SetupAttachment(RootComponent);
 
 	HitboxController = CreateDefaultSubobject<UHitboxController>(TEXT("Hitbox Controller"));
 	HitboxController->SetupAttachment(GetMesh());
 	HitboxController->HitDetectedDelegate.BindUObject(this, &AFociCharacter::HitTarget);
+
+	ViewMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewMesh"));
+	ViewMesh->SetupAttachment(FirstPersonCamera);
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -85,11 +93,17 @@ void AFociCharacter::Tick(float DeltaSeconds)
 	}
 }
 
+void AFociCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	PlayerController = Cast<APlayerController>(NewController);
+}
+
 void AFociCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	if (PlayerController)
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
@@ -192,22 +206,84 @@ void AFociCharacter::SetFocusTarget(AActor* Target)
 {
 	FocusTarget = Target;
 	MarleMovementComponent->bOrientRotationToMovement = false;
-
 	FRotator ActorRotation = GetActorRotation();
 
 	const FVector Difference = FocusTarget->GetActorLocation() - GetActorLocation();
 	const double NewYaw = FMath::RadiansToDegrees(FMath::Atan2(Difference.Y, Difference.X));
 	ActorRotation.Yaw = NewYaw;
 	SetActorRotation(ActorRotation);
+
+	DisableFirstPerson();
+	ReleaseWeapon();
 }
 
 void AFociCharacter::ClearFocusTarget()
 {
 	FocusTarget = nullptr;
 	MarleMovementComponent->bOrientRotationToMovement = true;
+	ReleaseWeapon_Internal();
+}
+
+bool AFociCharacter::GetFirstPerson() const
+{
+	return bFirstPersonMode;
+}
+
+bool AFociCharacter::IsWeaponDrawn() const
+{
+	return bWeaponDrawn;
+}
+
+bool AFociCharacter::IsWeaponReady() const
+{
+	return bWeaponReady;
 }
 
 
+void AFociCharacter::EnableFirstPerson()
+{
+	FirstPersonCamera->Activate();
+	FollowCamera->Deactivate();
+	bFirstPersonMode = true;
+	MarleMovementComponent->bUseControllerDesiredRotation = true;
+	MarleMovementComponent->bOrientRotationToMovement = false;
+	GetMesh()->SetVisibility(false, true);
+	ViewMesh->SetVisibility(true, true);
+}
+
+void AFociCharacter::DisableFirstPerson()
+{
+	FollowCamera->Activate();
+	FirstPersonCamera->Deactivate();
+	bFirstPersonMode = false;
+	MarleMovementComponent->bUseControllerDesiredRotation = false;
+	if (!HasTarget())
+	{
+		MarleMovementComponent->bOrientRotationToMovement = true;
+	}
+	GetMesh()->SetVisibility(true, true);
+	ViewMesh->SetVisibility(false, true);
+}
+
+
+
+void AFociCharacter::SetFirstPerson(bool bFirstPerson)
+{
+	if (HasTarget())
+	{
+		return;
+	}
+	if (bFirstPerson && !bFirstPersonMode)
+	{
+		EnableFirstPerson();
+		return;
+	}
+	if (!bFirstPerson && bFirstPersonMode)
+	{
+		DisableFirstPerson();
+		return;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -224,11 +300,15 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFociCharacter::Look);
 
 		//A-button equivalent
-		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Triggered, this, &AFociCharacter::Primary);
+		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Started, this, &AFociCharacter::Primary);
 
 		//B-button equivalent
-		EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Triggered, this, &AFociCharacter::Secondary);
+		EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Started, this, &AFociCharacter::Secondary);
 
+
+		//Slot1
+		EnhancedInputComponent->BindAction(Slot1Action, ETriggerEvent::Started, this, &AFociCharacter::Slot1Pressed);
+		EnhancedInputComponent->BindAction(Slot1Action, ETriggerEvent::Completed, this, &AFociCharacter::Slot1Released);
 	}
 
 }
@@ -305,5 +385,57 @@ void AFociCharacter::Primary(const FInputActionValue& Value)
 
 void AFociCharacter::Secondary(const FInputActionValue& Value)
 {
+	if (bFirstPersonMode)
+	{
+		DisableFirstPerson();
+		return;
+	}
+	if (bWeaponReady)
+	{
+		ReleaseWeapon_Internal();
+		return;
+	}
 	Attack();
+}
+
+
+
+void AFociCharacter::Slot1Pressed(const FInputActionValue& Value)
+{
+	if (!HasTarget() && !bFirstPersonMode)
+	{
+		EnableFirstPerson();
+		ReadyWeapon_Internal();
+		return;
+	}
+	if (!bWeaponReady)
+	{
+		ReadyWeapon_Internal();
+	}
+	if (!bWeaponDrawn)
+	{
+		bWeaponDrawn = true;
+	}
+}
+
+void AFociCharacter::Slot1Released(const FInputActionValue& Value)
+{
+	if (!bWeaponDrawn || !bWeaponReady)
+	{
+		return;
+	}
+	bWeaponDrawn = false;
+	FireWeapon(HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
+}
+
+void AFociCharacter::ReadyWeapon_Internal()
+{
+	bWeaponReady = true;
+	ReadyWeapon();
+}
+
+void AFociCharacter::ReleaseWeapon_Internal()
+{
+	bWeaponReady = false;
+	ReleaseWeapon();
 }

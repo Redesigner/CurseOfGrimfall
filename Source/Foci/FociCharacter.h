@@ -21,11 +21,17 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* FirstPersonCamera;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class USphereComponent* InteractTrigger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class UHitboxController* HitboxController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class USkeletalMeshComponent* ViewMesh;
 
 	
 	/** MappingContext */
@@ -47,6 +53,10 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SecondaryAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
+	class UInputAction* Slot1Action;
+
+
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -55,8 +65,16 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bInputEnabled = true;
 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = FirstPerson, meta = (AllowPrivateAccess = "true"))
+	bool bFirstPersonMode = false;
+
+
 	// Don't mark this as a UPROPERTY. This is a cast ref to movementcomponent
 	class UMarleMovementComponent* MarleMovementComponent;
+
+	APlayerController* PlayerController;
+
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<AActor> FocusTarget;
@@ -65,6 +83,8 @@ public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Tick(float DeltaSeconds) override;
+
+	virtual void PossessedBy(AController* NewController) override;
 
 protected:
 
@@ -78,6 +98,20 @@ protected:
 
 	void Secondary(const FInputActionValue& Value);
 
+	void Slot1Pressed(const FInputActionValue& Value);
+
+	void Slot1Released(const FInputActionValue& Value);
+
+	// Use the blueprint event to hide any necessary elements
+	void ReadyWeapon_Internal();
+	UFUNCTION(BlueprintImplementableEvent)
+	void ReadyWeapon();
+
+	// Use the blueprint event to hide any necessary elements
+	void ReleaseWeapon_Internal();
+	UFUNCTION(BlueprintImplementableEvent)
+	void ReleaseWeapon();
+
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void Attack();
@@ -85,7 +119,13 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitTarget(const FHitResult& HitResult);
 
-protected:
+	UFUNCTION(BlueprintCallable)
+	void SetFirstPerson(bool bFirstPerson);
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void FireWeapon(FRotator Direction);
+
+
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
@@ -135,8 +175,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ClearFocusTarget();
 
+	UFUNCTION(BlueprintCallable)
+	bool GetFirstPerson() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool IsWeaponDrawn() const;
+
+	UFUNCTION(BlueprintCallable)
+	bool IsWeaponReady() const;
+
 private:
+	void EnableFirstPerson();
+
+	void DisableFirstPerson();
+
 	bool bMovingToLocation = false;
+
+	bool bWeaponDrawn = false;
+
+	bool bWeaponReady = false;
 
 	FVector Destination;
 };
