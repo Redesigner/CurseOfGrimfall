@@ -7,22 +7,47 @@
 #include "WeaponTool.generated.h"
 
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class FOCI_API UWeaponTool : public UActorComponent
+UCLASS(config=Game)
+class FOCI_API AWeaponTool : public AActor
 {
 	GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UWeaponTool();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* ThirdPersonRoot;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* FirstPersonRoot;
+
+public:
+	AWeaponTool(const FObjectInitializer& ObjectInitializer);
+
+	virtual void Destroyed() override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetFirstPerson();
+
+	UFUNCTION(BlueprintCallable)
+	void SetThirdPerson();
+
+	void AttachComponentsToSockets(class USkeletalMeshComponent* ThirdPersonMesh, USkeletalMeshComponent* FirstPersonMesh, bool bStartFirstPerson = false, FName SocketName = NAME_None);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnFire(ACharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
+
+	virtual void Fire(ACharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
+
+	virtual void Draw();
+
+	UFUNCTION(BlueprintCallable)
+	bool GetWeaponDrawn();
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+private:
+
+	bool bFirstPerson = false;
+
+	bool bDrawn = false;
 };

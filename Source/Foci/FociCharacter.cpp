@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "FociCharacter.h"
+
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
@@ -13,10 +14,13 @@
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
+#include "Foci.h"
+
 #include "Foci/Components/HitboxController.h"
 #include "MarleMovementComponent.h"
 #include "Ladder.h"
 #include "Foci/Actors/Interactable.h"
+#include "Foci/Components/WeaponTool.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFociCharacter
@@ -214,14 +218,14 @@ void AFociCharacter::SetFocusTarget(AActor* Target)
 	SetActorRotation(ActorRotation);
 
 	DisableFirstPerson();
-	ReleaseWeapon();
+	// ReleaseWeapon();
 }
 
 void AFociCharacter::ClearFocusTarget()
 {
 	FocusTarget = nullptr;
 	MarleMovementComponent->bOrientRotationToMovement = true;
-	ReleaseWeapon_Internal();
+	// ReleaseWeapon();
 }
 
 bool AFociCharacter::GetFirstPerson() const
@@ -247,8 +251,13 @@ void AFociCharacter::EnableFirstPerson()
 	bFirstPersonMode = true;
 	MarleMovementComponent->bUseControllerDesiredRotation = true;
 	MarleMovementComponent->bOrientRotationToMovement = false;
-	GetMesh()->SetVisibility(false, true);
-	ViewMesh->SetVisibility(true, true);
+	GetMesh()->SetVisibility(false);
+	ViewMesh->SetVisibility(true);
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetFirstPerson();
+	}
 }
 
 void AFociCharacter::DisableFirstPerson()
@@ -261,8 +270,13 @@ void AFociCharacter::DisableFirstPerson()
 	{
 		MarleMovementComponent->bOrientRotationToMovement = true;
 	}
-	GetMesh()->SetVisibility(true, true);
-	ViewMesh->SetVisibility(false, true);
+	GetMesh()->SetVisibility(true);
+	ViewMesh->SetVisibility(false);
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetThirdPerson();
+	}
 }
 
 
@@ -284,6 +298,7 @@ void AFociCharacter::SetFirstPerson(bool bFirstPerson)
 		return;
 	}
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -388,11 +403,15 @@ void AFociCharacter::Secondary(const FInputActionValue& Value)
 	if (bFirstPersonMode)
 	{
 		DisableFirstPerson();
+		if (bWeaponReady)
+		{
+			ReleaseWeapon();
+		}
 		return;
 	}
 	if (bWeaponReady)
 	{
-		ReleaseWeapon_Internal();
+		ReleaseWeapon();
 		return;
 	}
 	Attack();
@@ -402,18 +421,25 @@ void AFociCharacter::Secondary(const FInputActionValue& Value)
 
 void AFociCharacter::Slot1Pressed(const FInputActionValue& Value)
 {
+	// If we aren't targeting something, we want to enter first-person mode, first
+	// third-person mode and using a slotted weapon/tool aren't compatible right now
 	if (!HasTarget() && !bFirstPersonMode)
 	{
 		EnableFirstPerson();
-		ReadyWeapon_Internal();
+		ReadyWeapon(Weapons[0]);
 		return;
 	}
+	// we have a target, but our weapon isn't ready, so ready it
 	if (!bWeaponReady)
 	{
-		ReadyWeapon_Internal();
+		ReadyWeapon(Weapons[0]);
 	}
 	if (!bWeaponDrawn)
 	{
+		if (CurrentWeapon)
+		{
+			CurrentWeapon->Draw();
+		}
 		bWeaponDrawn = true;
 	}
 }
@@ -425,17 +451,38 @@ void AFociCharacter::Slot1Released(const FInputActionValue& Value)
 		return;
 	}
 	bWeaponDrawn = false;
-	FireWeapon(HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
+	FireWeapon();
 }
 
-void AFociCharacter::ReadyWeapon_Internal()
+void AFociCharacter::ReadyWeapon(TSubclassOf<class AWeaponTool> Weapon)
 {
+	if (CurrentWeapon)
+	{
+		UE_LOG(LogWeaponSystem, Warning, TEXT("Attempted to ready a weapon before releasing the curent weapon."))
+		return;
+	}
+	CurrentWeapon = Cast<AWeaponTool>(GetWorld()->SpawnActor(Weapon));
+	CurrentWeapon->AttachComponentsToSockets(GetMesh(), ViewMesh, bFirstPersonMode, TEXT("Handle_R"));
 	bWeaponReady = true;
-	ReadyWeapon();
 }
 
-void AFociCharacter::ReleaseWeapon_Internal()
+void AFociCharacter::ReleaseWeapon()
 {
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->Destroy(true);
+	}
+	CurrentWeapon = nullptr;
 	bWeaponReady = false;
-	ReleaseWeapon();
+}
+
+
+void AFociCharacter::FireWeapon()
+{
+	if (!CurrentWeapon)
+	{
+		return;
+	}
+	CurrentWeapon->Fire(this, GetActorLocation() + FVector::UpVector * 35.0f,
+		HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
 }

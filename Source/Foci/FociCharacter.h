@@ -56,7 +56,8 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
 	class UInputAction* Slot1Action;
 
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
+	TArray<TSubclassOf<class AWeaponTool>> Weapons;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -68,6 +69,9 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = FirstPerson, meta = (AllowPrivateAccess = "true"))
 	bool bFirstPersonMode = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
+	class AWeaponTool* CurrentWeapon;
 
 
 	// Don't mark this as a UPROPERTY. This is a cast ref to movementcomponent
@@ -102,14 +106,8 @@ protected:
 
 	void Slot1Released(const FInputActionValue& Value);
 
-	// Use the blueprint event to hide any necessary elements
-	void ReadyWeapon_Internal();
-	UFUNCTION(BlueprintImplementableEvent)
-	void ReadyWeapon();
+	void ReadyWeapon(TSubclassOf<class AWeaponTool> Weapon);
 
-	// Use the blueprint event to hide any necessary elements
-	void ReleaseWeapon_Internal();
-	UFUNCTION(BlueprintImplementableEvent)
 	void ReleaseWeapon();
 
 
@@ -122,8 +120,8 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void SetFirstPerson(bool bFirstPerson);
 
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
-	void FireWeapon(FRotator Direction);
+	UFUNCTION(BlueprintCallable)
+	void FireWeapon();
 
 
 	// APawn interface
