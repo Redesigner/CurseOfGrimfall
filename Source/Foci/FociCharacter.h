@@ -182,6 +182,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsWeaponReady() const;
 
+	UFUNCTION(BlueprintCallable)
+	const FText& GetCurrentDialog() const;
+
+	UFUNCTION(BlueprintCallable)
+	void SetDialog(FText Dialog);
+
 private:
 	void EnableFirstPerson();
 
@@ -194,5 +200,7 @@ private:
 	bool bWeaponReady = false;
 
 	FVector Destination;
+
+	FText CurrentDialog;
 };
 

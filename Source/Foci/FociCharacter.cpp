@@ -21,6 +21,7 @@
 #include "Ladder.h"
 #include "Foci/Actors/Interactable.h"
 #include "Foci/Components/WeaponTool.h"
+#include "InteractableInterface.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFociCharacter
@@ -193,12 +194,11 @@ void AFociCharacter::Interact()
 			SetFocusTarget(Actor);
 			continue;
 		}
-		AInteractable* Interactable = Cast<AInteractable>(Actor);
-		if (!Interactable)
+		if (!Actor->Implements<UInteractableInterface>())
 		{
 			continue;
 		}
-		Interactable->Interact(this);
+		IInteractableInterface::Execute_Interact(Actor, this);
 	}
 	if (!bFoundTarget)
 	{
@@ -217,7 +217,7 @@ void AFociCharacter::SetFocusTarget(AActor* Target)
 	ActorRotation.Yaw = NewYaw;
 	SetActorRotation(ActorRotation);
 
-	DisableFirstPerson();
+	DisableFirstPerson(); 
 	// ReleaseWeapon();
 }
 
@@ -225,7 +225,10 @@ void AFociCharacter::ClearFocusTarget()
 {
 	FocusTarget = nullptr;
 	MarleMovementComponent->bOrientRotationToMovement = true;
-	// ReleaseWeapon();
+	if (bWeaponReady)
+	{
+		ReleaseWeapon();
+	}
 }
 
 bool AFociCharacter::GetFirstPerson() const
@@ -241,6 +244,16 @@ bool AFociCharacter::IsWeaponDrawn() const
 bool AFociCharacter::IsWeaponReady() const
 {
 	return bWeaponReady;
+}
+
+const FText& AFociCharacter::GetCurrentDialog() const
+{
+	return CurrentDialog;
+}
+
+void AFociCharacter::SetDialog(FText Dialog)
+{
+	CurrentDialog = Dialog;
 }
 
 
