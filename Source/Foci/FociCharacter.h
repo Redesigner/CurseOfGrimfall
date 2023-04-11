@@ -5,6 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+
+#include "Dialog/DialogResponse.h"
+#include "Dialog/DialogRequest.h"
+
+#include "Types/MVVMViewModelContext.h"
+
 #include "FociCharacter.generated.h"
 
 
@@ -83,12 +89,16 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<AActor> FocusTarget;
 
+
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void PossessedBy(AController* NewController) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dialog)
+	class UDialogViewModel* DialogViewModel;
 
 protected:
 
@@ -127,18 +137,14 @@ protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-	// To add mapping context
 	virtual void BeginPlay();
 
 	virtual bool CanJumpInternal_Implementation() const override;
 
 public:
-	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
+
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-
 
 	virtual void OnWalkingOffLedge_Implementation(const FVector& PreviousFloorImpactNormal,
 		const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta)  override;
@@ -182,16 +188,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	bool IsWeaponReady() const;
 
-	UFUNCTION(BlueprintCallable)
-	const FText& GetCurrentDialog() const;
-
-	UFUNCTION(BlueprintCallable)
-	void SetDialog(FText Dialog);
+	const FDialogResponse& GetDialog() const;
 
 private:
 	void EnableFirstPerson();
 
 	void DisableFirstPerson();
+
+	// void BindViewModel();
 
 	bool bMovingToLocation = false;
 
@@ -201,6 +205,18 @@ private:
 
 	FVector Destination;
 
-	FText CurrentDialog;
+public:
+	//////////////////////////////////////
+	// Dialog System
+
+	UFUNCTION(BlueprintCallable)
+	void SetDialog(FDialogResponse Dialog);
+
+	void RequestDialogFromLastNpc(FDialogRequest DialogRequest);
+
+private:
+	FDialogResponse CurrentDialog;
+
+	TWeakObjectPtr<class AActor> LastInteractedNPC;
 };
 

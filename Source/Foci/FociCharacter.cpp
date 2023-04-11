@@ -9,13 +9,15 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+#include "Kismet/GameplayStatics.h" 
+
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
 #include "Foci.h"
-
+#include "Dialog/DialogViewModel.h"
 #include "Foci/Components/HitboxController.h"
 #include "MarleMovementComponent.h"
 #include "Ladder.h"
@@ -76,6 +78,9 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	ViewMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewMesh"));
 	ViewMesh->SetupAttachment(FirstPersonCamera);
+
+	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
+	DialogViewModel->SetModel(this);
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -199,6 +204,7 @@ void AFociCharacter::Interact()
 			continue;
 		}
 		IInteractableInterface::Execute_Interact(Actor, this);
+		LastInteractedNPC = Actor;
 	}
 	if (!bFoundTarget)
 	{
@@ -246,17 +252,6 @@ bool AFociCharacter::IsWeaponReady() const
 	return bWeaponReady;
 }
 
-const FText& AFociCharacter::GetCurrentDialog() const
-{
-	return CurrentDialog;
-}
-
-void AFociCharacter::SetDialog(FText Dialog)
-{
-	CurrentDialog = Dialog;
-}
-
-
 void AFociCharacter::EnableFirstPerson()
 {
 	FirstPersonCamera->Activate();
@@ -291,7 +286,6 @@ void AFociCharacter::DisableFirstPerson()
 		CurrentWeapon->SetThirdPerson();
 	}
 }
-
 
 
 void AFociCharacter::SetFirstPerson(bool bFirstPerson)
@@ -499,3 +493,53 @@ void AFociCharacter::FireWeapon()
 	CurrentWeapon->Fire(this, GetActorLocation() + FVector::UpVector * 35.0f,
 		HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Dialog
+const FDialogResponse& AFociCharacter::GetDialog() const
+{
+	return CurrentDialog;
+}
+
+void AFociCharacter::SetDialog(FDialogResponse Dialog)
+{
+	CurrentDialog = Dialog;
+	DialogViewModel->SetDialog(CurrentDialog);
+	UGameplayStatics::SetGamePaused(GetWorld(), !Dialog.IsEmpty());
+}
+
+void AFociCharacter::RequestDialogFromLastNpc(FDialogRequest DialogRequest)
+{
+	if (!LastInteractedNPC.IsValid())
+	{
+		return;
+	}
+	IInteractableInterface::Execute_RequestDialog(LastInteractedNPC.Get(), this, DialogRequest);
+}
+
+
+/* This function is intended for the MVVM plugin
+void AFociCharacter::BindViewModel()
+{
+	
+	UMVVMSubsystem* MVVMSubsystem = GEngine->GetEngineSubsystem<UMVVMSubsystem>();
+	if (!MVVMSubsystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unable to locate the MVVM Subsystem"))
+		return;
+	}
+	UMVVMViewModelCollectionObject* ViewModelCollection = MVVMSubsystem->GetGlobalViewModelCollection();
+	UMVVMViewModelBase* ViewModelBase = ViewModelCollection->FindViewModelInstance(DialogViewModelContext);
+	if (ViewModelBase)
+	{
+		DialogViewModel = Cast<UDialogViewModel>(ViewModelBase);
+		return;
+	}
+	if (ViewModelCollection->AddViewModelInstance(DialogViewModelContext, NewObject<UDialogViewModel>()))
+	{
+		return;
+	}
+	UE_LOG(LogTemp, Error, TEXT("Failed to locate viewmodel"))
+	
+} */

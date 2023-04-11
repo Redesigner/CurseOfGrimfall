@@ -25,4 +25,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void Interact(class ACharacter* Source);
+
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
+	void RequestDialog(class ACharacter* Source, FDialogRequest DialogRequest);
 };
