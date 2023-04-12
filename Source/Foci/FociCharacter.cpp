@@ -188,6 +188,13 @@ void AFociCharacter::GrabLadder(ALadder* Ladder)
 
 void AFociCharacter::Interact()
 {
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	if (TimerManager.IsTimerActive(InteractDebounceTimer))
+	{
+		return;
+	}
+	TimerManager.SetTimer(InteractDebounceTimer, InteractDebounceTime, false);
+
 	TSet<AActor*> OverlappingActors;
 	InteractTrigger->GetOverlappingActors(OverlappingActors);
 	bool bFoundTarget = false;
@@ -507,6 +514,11 @@ void AFociCharacter::SetDialog(FDialogResponse Dialog)
 	CurrentDialog = Dialog;
 	DialogViewModel->SetDialog(CurrentDialog);
 	UGameplayStatics::SetGamePaused(GetWorld(), !Dialog.IsEmpty());
+	
+	if (Dialog.IsEmpty())
+	{
+
+	}
 }
 
 void AFociCharacter::RequestDialogFromLastNpc(FDialogRequest DialogRequest)

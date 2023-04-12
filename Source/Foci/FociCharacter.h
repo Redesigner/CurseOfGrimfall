@@ -218,5 +218,10 @@ private:
 	FDialogResponse CurrentDialog;
 
 	TWeakObjectPtr<class AActor> LastInteractedNPC;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Dialog, meta = (AllowPrivateAccess = "true"))
+	float InteractDebounceTime = 1.0f;
+
+	FTimerHandle InteractDebounceTimer;
 };
 
