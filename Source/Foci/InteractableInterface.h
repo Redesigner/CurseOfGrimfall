@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Dialog/DialogRequest.h"
+
 #include "InteractableInterface.generated.h"
 
 // This class does not need to be modified.
@@ -25,7 +27,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
 	void Interact(class ACharacter* Source);
-
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
-	void RequestDialog(class ACharacter* Source, FDialogRequest DialogRequest);
 };

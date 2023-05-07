@@ -17,8 +17,6 @@ class FOCI_API UDialogTextBlock : public UTextBlock, public FTickableGameObject
 {
 	GENERATED_BODY()
 
-protected:
-	virtual TAttribute<FText> GetDisplayText() override;
 
 public:
 	virtual void SetText(FText InText) override;
@@ -26,10 +24,15 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
-	void SetViewModel(class UDialogViewModel* DialogViewModel);
+	void BindViewModel(class UDialogViewModel* DialogViewModel);
+
+	// Try to skip the animation
+	// returns true if this causes the animation to be skipped
+	UFUNCTION(BlueprintCallable)
+	bool SkipAnimation();
 
 	UFUNCTION(BlueprintCallable)
-	void Advance();
+	void SetDialog(FText Dialog);
 
 	virtual ETickableTickType GetTickableTickType() const override;
 

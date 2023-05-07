@@ -20,9 +20,16 @@ class FOCI_API UDialogViewModel : public UObject
 public:
 	void SetModel(class AFociCharacter* Character);
 
+	void SetView(class UDialogWidget* Widget);
+
 	void SetDialog(FDialogResponse Response);
 
 	void RequestDialog();
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogOptionsChanged, TArray<FText>, Options);
+
+	UPROPERTY(BlueprintAssignable)
+	FOnDialogOptionsChanged OnDialogOptionsChanged;
 
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogTextChanged, FText, NewText);
@@ -34,4 +41,6 @@ private:
 	FDialogResponse Dialog;
 
 	TWeakObjectPtr<class AFociCharacter> Model;
+
+	TWeakObjectPtr<class UDialogWidget> View;
 };

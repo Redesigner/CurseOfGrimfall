@@ -1,30 +1,23 @@
-// Copyright 2023 Stephen Melnick
-
 #pragma once
 
 #include "CoreMinimal.h"
 
 #include "Engine/DataTable.h" 
+#include "DialogResponse.h"
 
-#include "DialogResponse.generated.h"
+#include "DialogTableEntry.generated.h"
 
-/**
- * 
- */
 USTRUCT(BlueprintType)
-struct FOCI_API FDialogResponse 
+struct FOCI_API FDialogTableEntry : public FTableRowBase
 {
 	GENERATED_BODY()
 
-	bool IsEmpty() const;
-
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FText PreviousDialogInstance;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FText DialogTitle;
+	uint8 OptionChosen = 0;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FText Dialog;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TArray<FText> Options;
+	FDialogResponse DialogResponse;
 };

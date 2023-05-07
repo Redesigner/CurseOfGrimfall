@@ -24,6 +24,7 @@
 #include "Foci/Actors/Interactable.h"
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
+#include "Foci/DialogComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFociCharacter
@@ -206,12 +207,16 @@ void AFociCharacter::Interact()
 			SetFocusTarget(Actor);
 			continue;
 		}
-		if (!Actor->Implements<UInteractableInterface>())
+		if (UActorComponent* DialogActorComponent = Actor->GetComponentByClass(UDialogComponent::StaticClass()) )
 		{
+			LastInteractedNPC = Cast<UDialogComponent>(DialogActorComponent);
+			LastInteractedNPC->RequestDialog(this, FDialogRequest());
 			continue;
 		}
-		IInteractableInterface::Execute_Interact(Actor, this);
-		LastInteractedNPC = Actor;
+		if (Actor->Implements<UInteractableInterface>())
+		{
+			IInteractableInterface::Execute_Interact(Actor, this);
+		}
 	}
 	if (!bFoundTarget)
 	{
@@ -517,7 +522,7 @@ void AFociCharacter::SetDialog(FDialogResponse Dialog)
 	
 	if (Dialog.IsEmpty())
 	{
-
+		LastInteractedNPC = nullptr;
 	}
 }
 
@@ -527,7 +532,7 @@ void AFociCharacter::RequestDialogFromLastNpc(FDialogRequest DialogRequest)
 	{
 		return;
 	}
-	IInteractableInterface::Execute_RequestDialog(LastInteractedNPC.Get(), this, DialogRequest);
+	LastInteractedNPC->RequestDialog(this, DialogRequest);
 }
 
 

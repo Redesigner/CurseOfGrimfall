@@ -8,22 +8,17 @@
 #include "Foci/Foci.h"
 #include "DialogViewModel.h"
 
-TAttribute<FText> UDialogTextBlock::GetDisplayText()
-{
-	if (!GetWorld())
-	{
-		return FText::FromString("Dialog Text Block");
-	}
-	if (GetWorld()->WorldType == EWorldType::Editor)
-	{
-		return FText::FromString("Dialog Text Block");
-	}
-	return FText::FromString(DisplayText);
-}
 
 void UDialogTextBlock::SetText(FText InText)
 {
-	Super::SetText(InText);
+	if (GetWorld())
+	{
+		if (GetWorld()->WorldType == EWorldType::Editor)
+		{
+			Super::SetText(InText);
+			return;
+		}
+	}
 
 	TextString = InText.ToString();
 	DisplayText.Empty();
@@ -32,9 +27,7 @@ void UDialogTextBlock::SetText(FText InText)
 
 	bAnimationPlaying = true;
 
-	// This will force an update of all properties, invoking GetDisplayText().
-	// AFAIK, this is the best way to update the text without accessing slate directly
-	Super::SynchronizeProperties();
+	MyTextBlock->SetText(FText());
 }
 
 void UDialogTextBlock::Tick(float DeltaTime)
@@ -55,32 +48,34 @@ void UDialogTextBlock::Tick(float DeltaTime)
 		TextCounter--;
 		CurrentTextIndex++;
 		DisplayText += TextString[CurrentTextIndex - 1];
-		Super::SynchronizeProperties();
+
+		// UE_LOG(LogDialog, Display, TEXT("Dialog animation: '%s'"), *DisplayText);
+		
+		MyTextBlock->SetText(FText::FromString(DisplayText));
 	}
 }
 
-void UDialogTextBlock::SetViewModel(UDialogViewModel* DialogViewModel)
+void UDialogTextBlock::BindViewModel(UDialogViewModel* DialogViewModel)
 {
 	ViewModel = DialogViewModel;
 }
 
-void UDialogTextBlock::Advance()
+bool UDialogTextBlock::SkipAnimation()
 {
 	if (bAnimationPlaying)
 	{
 		DisplayText = TextString;
-		Super::SynchronizeProperties();
+		MyTextBlock->SetText(FText::FromString(DisplayText));
 		bAnimationPlaying = false;
-		return;
+		return true;
 	}
-	if (!ViewModel.IsValid())
-	{
-		UE_LOG(LogDialog, Warning, TEXT("DialogTextBlock does not have a valid viewmodel."))
-		return;
-	}
-	// @TODO: respond appropriately to options. For now, viewmodel handles actually generating the request
-	// Should this be changed?
-	ViewModel->RequestDialog();
+	return false;
+}
+
+void UDialogTextBlock::SetDialog(FText Dialog)
+{
+	UE_LOG(LogDialog, Display, TEXT("Dialog changed to '%s' by callback"), *Dialog.ToString())
+	SetText(Dialog);
 }
 
 /////////////////////////////////////////////////////////////////////////////
