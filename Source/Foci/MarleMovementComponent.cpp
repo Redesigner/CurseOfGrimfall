@@ -192,7 +192,7 @@ bool UMarleMovementComponent::CanGrabLedge(UPrimitiveComponent* CapsuleComponent
 		return false;
 	}
 	// Don't climb on physics objects
-	if (LedgeComponent->IsAnySimulatingPhysics())
+	if (LedgeComponent->IsAnySimulatingPhysics() || LedgeComponent->GetOwner()->IsA<AFociCharacter>())
 	{
 		return false;
 	}

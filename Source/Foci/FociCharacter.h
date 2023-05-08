@@ -89,6 +89,12 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<AActor> FocusTarget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stats, meta = (AllowPrivateAccess = "true"))
+	float CurrentHealth = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stats, meta = (AllowPrivateAccess = "true"))
+	float MaxHealth = 3.0f;
+
 
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
@@ -99,6 +105,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dialog)
 	class UDialogViewModel* DialogViewModel;
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, NewHealth);
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnHealthChanged;
 
 protected:
 
@@ -132,6 +142,9 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FireWeapon();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnDeath();
 
 
 	// APawn interface
@@ -187,6 +200,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsWeaponReady() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentHealth() const;
+
+	UFUNCTION(BlueprintCallable)
+	float AddHealth(float Health);
 
 	const FDialogResponse& GetDialog() const;
 

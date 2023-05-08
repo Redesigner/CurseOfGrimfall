@@ -264,6 +264,33 @@ bool AFociCharacter::IsWeaponReady() const
 	return bWeaponReady;
 }
 
+float AFociCharacter::GetCurrentHealth() const
+{
+	return CurrentHealth;
+}
+
+float AFociCharacter::AddHealth(float Health)
+{
+	if (Health + CurrentHealth > MaxHealth)
+	{
+		CurrentHealth = MaxHealth;
+	}
+	else if (Health + CurrentHealth < 0.0f)
+	{
+		if (CurrentHealth >= 0.0f)
+		{
+			OnDeath();
+		}
+		CurrentHealth = 0.0f;
+	}
+	else
+	{
+		CurrentHealth += Health;
+	}
+	OnHealthChanged.Broadcast(CurrentHealth);
+	return CurrentHealth;
+}
+
 void AFociCharacter::EnableFirstPerson()
 {
 	FirstPersonCamera->Activate();
