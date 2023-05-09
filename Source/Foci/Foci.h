@@ -6,3 +6,4 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWeaponSystem, Log, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogDialog, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogInventory, Log, All);

@@ -7,3 +7,4 @@ IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, Foci, "Foci" );
  
 DEFINE_LOG_CATEGORY(LogWeaponSystem);
 DEFINE_LOG_CATEGORY(LogDialog);
+DEFINE_LOG_CATEGORY(LogInventory);

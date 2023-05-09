@@ -25,6 +25,8 @@
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
+#include "Foci/Inventory/InventoryTable.h"
+#include "Foci/Inventory/Pickup.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AFociCharacter
@@ -82,6 +84,8 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
 	DialogViewModel->SetModel(this);
+
+	Inventory = CreateDefaultSubobject<UInventoryTable>(TEXT("Inventory"));
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -143,9 +147,21 @@ void AFociCharacter::OnWalkingOffLedge_Implementation(const FVector& PreviousFlo
 
 void AFociCharacter::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->IsA<ALadder>())
+	if (!OtherActor)
+	{
+		return;
+	}
+
+	if (OtherActor->IsA<ALadder>())
 	{
 		GrabLadder(Cast<ALadder>(OtherActor));
+	}
+
+	if (OtherActor->IsA<APickup>())
+	{
+		APickup* Pickup = Cast<APickup>(OtherActor);
+		Inventory->GiveItem(Pickup->GetItemName(), Pickup->GetItemCount());
+		Pickup->OnPickup(this);
 	}
 }
 
@@ -187,6 +203,9 @@ void AFociCharacter::GrabLadder(ALadder* Ladder)
 	MarleMovementComponent->GrabLadder(Ladder);
 }
 
+
+///////////////////////////////////////////////////////////////////////////
+// Interaction
 void AFociCharacter::Interact()
 {
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
@@ -223,6 +242,9 @@ void AFociCharacter::Interact()
 		ClearFocusTarget();
 	}
 }
+
+
+
 
 void AFociCharacter::SetFocusTarget(AActor* Target)
 {
@@ -291,6 +313,13 @@ float AFociCharacter::AddHealth(float Health)
 	return CurrentHealth;
 }
 
+
+UInventoryTable* AFociCharacter::GetInventory()
+{
+	return Inventory;
+}
+
+
 void AFociCharacter::EnableFirstPerson()
 {
 	FirstPersonCamera->Activate();
@@ -306,6 +335,7 @@ void AFociCharacter::EnableFirstPerson()
 		CurrentWeapon->SetFirstPerson();
 	}
 }
+
 
 void AFociCharacter::DisableFirstPerson()
 {

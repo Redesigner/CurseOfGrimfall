@@ -40,6 +40,11 @@ class AFociCharacter : public ACharacter
 	class USkeletalMeshComponent* ViewMesh;
 
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	class UInventoryTable* Inventory;
+
+
+	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputMappingContext* DefaultMappingContext;
@@ -61,6 +66,8 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
 	class UInputAction* Slot1Action;
+
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
 	TArray<TSubclassOf<class AWeaponTool>> Weapons;
@@ -94,7 +101,6 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stats, meta = (AllowPrivateAccess = "true"))
 	float MaxHealth = 3.0f;
-
 
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
@@ -173,6 +179,7 @@ public:
 	void Mantle(FVector ResultingLocation);
 
 
+
 	UFUNCTION(BlueprintCallable)
 	void SetInputEnabled(bool bEnabled);
 
@@ -206,6 +213,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	float AddHealth(float Health);
+
+	UFUNCTION(BlueprintCallable)
+	UInventoryTable* GetInventory();
 
 	const FDialogResponse& GetDialog() const;
 
