@@ -39,9 +39,11 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* ViewMesh;
 
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	class UInventoryTable* Inventory;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health, meta = (AllowPrivateAccess = "true"))
+	class UHealthComponent* HealthComponent;
 
 
 	
@@ -96,12 +98,6 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<AActor> FocusTarget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stats, meta = (AllowPrivateAccess = "true"))
-	float CurrentHealth = 3.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stats, meta = (AllowPrivateAccess = "true"))
-	float MaxHealth = 3.0f;
-
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
 
@@ -112,9 +108,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dialog)
 	class UDialogViewModel* DialogViewModel;
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, NewHealth);
-	UPROPERTY(BlueprintAssignable)
-	FOnHealthChanged OnHealthChanged;
+
 
 protected:
 
@@ -207,12 +201,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsWeaponReady() const;
-
-	UFUNCTION(BlueprintCallable)
-	float GetCurrentHealth() const;
-
-	UFUNCTION(BlueprintCallable)
-	float AddHealth(float Health);
 
 	UFUNCTION(BlueprintCallable)
 	UInventoryTable* GetInventory();

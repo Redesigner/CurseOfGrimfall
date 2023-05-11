@@ -25,6 +25,7 @@
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
+#include "Foci/Components/HealthComponent.h"
 #include "Foci/Inventory/InventoryTable.h"
 #include "Foci/Inventory/Pickup.h"
 
@@ -86,6 +87,8 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	DialogViewModel->SetModel(this);
 
 	Inventory = CreateDefaultSubobject<UInventoryTable>(TEXT("Inventory"));
+
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -284,33 +287,6 @@ bool AFociCharacter::IsWeaponDrawn() const
 bool AFociCharacter::IsWeaponReady() const
 {
 	return bWeaponReady;
-}
-
-float AFociCharacter::GetCurrentHealth() const
-{
-	return CurrentHealth;
-}
-
-float AFociCharacter::AddHealth(float Health)
-{
-	if (Health + CurrentHealth > MaxHealth)
-	{
-		CurrentHealth = MaxHealth;
-	}
-	else if (Health + CurrentHealth < 0.0f)
-	{
-		if (CurrentHealth >= 0.0f)
-		{
-			OnDeath();
-		}
-		CurrentHealth = 0.0f;
-	}
-	else
-	{
-		CurrentHealth += Health;
-	}
-	OnHealthChanged.Broadcast(CurrentHealth);
-	return CurrentHealth;
 }
 
 

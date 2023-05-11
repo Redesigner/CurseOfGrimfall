@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
 #include "Pickup.generated.h"
 
 UCLASS(meta = (BlueprintSpawnableComponent))
@@ -15,7 +14,14 @@ class FOCI_API APickup : public AActor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	uint8 ItemCount;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsMoving = false;
+
 public:
+	APickup(const FObjectInitializer& ObjectInitializer);
+
+	virtual void Tick(float DeltaTime) override;
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnPickup(class AFociCharacter* Character);
 
@@ -24,4 +30,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	uint8 GetItemCount();
+
+	UFUNCTION(BlueprintCallable)
+	void SetMoving(bool bMoving);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector Velocity;
 };
