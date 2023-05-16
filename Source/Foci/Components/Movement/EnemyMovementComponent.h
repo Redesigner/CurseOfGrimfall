@@ -34,11 +34,21 @@ protected:
 
 	virtual void PhysWalking(float DeltaTime);
 
+	void UpdateRotation(float DeltaTime);
+
 	virtual void SetDefaultMovementMode();
 
 	virtual bool FindFloor(FHitResult& OutHitResult) const;
 
 	virtual bool SnapToFloor();
+
+	// Navigation Movement component interface
+	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed) override;
+	virtual void RequestPathMove(const FVector& MoveInput) override;
+	virtual bool CanStartPathFollowing() const override;
+	virtual bool CanStopPathFollowing() const override;
+	virtual void StopActiveMovement() override;
+
 
 private:
 	TWeakObjectPtr<class AEnemy> EnemyOwner;
@@ -67,12 +77,19 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Movement|Floor", meta = (AllowPrivateAccess = true))
 	FVector BasisNormal;
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Movement|Floor", meta = (AllowPrivateAccess = true))
-	FRotator BasisNormalRotator;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rotation", meta = (AllowPrivateAccess = true))
+	bool bOrientRotationToMovement = true;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Rotation", meta = (AllowPrivateAccess = true))
+	float RotationSpeed = 30.0f;
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Movement|Pathfinding", meta = (AllowPrivateAccess = true))
+	FVector RequestedVelocity;
 
 public:
 	virtual void SetUpdatedComponent(USceneComponent* Component) override;
 
 	bool IsFalling() const;
+
 };

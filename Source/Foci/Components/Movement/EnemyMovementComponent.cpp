@@ -87,19 +87,64 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 	{
 		FrictionDelta = -PlanarVelocity;
 	}
+	if (!RequestedVelocity.IsNearlyZero())
+	{
+		Velocity = RequestedVelocity.GetSafeNormal2D() * MaxSpeed;
+	}
 	Velocity -= FrictionDelta;
 	Velocity += Acceleration * ConsumeInputVector();
 	Velocity = Velocity.GetClampedToMaxSize2D(MaxSpeed);
 
-	DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + BasisNormalRotator.RotateVector(Velocity), 25.0f, FColor::Red, false, DeltaTime * 2.0f);
+	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + Velocity, 25.0f, FColor::Red, false, DeltaTime * 2.0f);
+	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + BasisNormal * 50.0f, 50.0f, FColor::Blue, false, 10.0f);
 
 	FHitResult MoveHitResult;
-	SafeMoveUpdatedComponent(BasisNormalRotator.RotateVector(Velocity * DeltaTime), UpdatedComponent->GetComponentRotation(), true, MoveHitResult);
+	const FVector DeltaLocation = Velocity * DeltaTime;
+	// const FVector DeltaLocation = RequestedVelocity.GetClampedToMaxSize(MaxSpeed) * DeltaTime;
+	const float FloorDotDelta = (BasisNormal | DeltaLocation);
+	FVector RampMovement(DeltaLocation.X, DeltaLocation.Y, -FloorDotDelta / BasisNormal.Z);
+
+	SafeMoveUpdatedComponent(RampMovement, UpdatedComponent->GetComponentRotation(), true, MoveHitResult);
+
+	UCapsuleComponent* CapsuleComponent = EnemyOwner->GetCapsule();
 	if (MoveHitResult.IsValidBlockingHit())
 	{
+		const FVector DesiredLocation = CapsuleComponent->GetComponentLocation() + DeltaLocation;
+		FHitResult StepUpHitResult;
+		const float StepUpHeight = 5.0f;
+		FCollisionQueryParams CollisionQueryParams;
+		CollisionQueryParams.AddIgnoredActor(PawnOwner);
+
+		GetWorld()->SweepSingleByChannel(StepUpHitResult, DesiredLocation + FVector::UpVector * StepUpHeight, DesiredLocation, CapsuleComponent->GetComponentQuat(),
+			CapsuleComponent->GetCollisionObjectType(), CapsuleComponent->GetCollisionShape(1.0f), CollisionQueryParams);
+		if (StepUpHitResult.IsValidBlockingHit())
+		{
+			const FVector StepUpDelta = StepUpHitResult.Location - CapsuleComponent->GetComponentLocation();
+			PawnOwner->AddActorWorldOffset(StepUpDelta);
+		}
+
 		HandleBlockingImpact(MoveHitResult);
 	}
 	SetDefaultMovementMode();
+	UpdateRotation(DeltaTime);
+}
+
+void UEnemyMovementComponent::UpdateRotation(float DeltaTime)
+{
+	const FVector Normal2D = Velocity.GetSafeNormal2D();
+
+	if (Normal2D.IsNearlyZero())
+	{
+		return;
+	}
+	FRotator CurrentRotation = PawnOwner->GetActorRotation();
+	const float DesiredYaw = FMath::RadiansToDegrees(FMath::Atan2(Normal2D.Y, Normal2D.X));
+	// const float DeltaYaw = FMath::FindDeltaAngleDegrees(DesiredYaw, CurrentRotation.Yaw);
+	const float DeltaYaw = FMath::FInterpConstantTo(CurrentRotation.Yaw, DesiredYaw, DeltaTime, RotationSpeed);
+	FRotator DesiredRotation = CurrentRotation;
+	DesiredRotation.Yaw = DesiredYaw;
+	FRotator NewRotation = FMath::RInterpConstantTo(CurrentRotation, DesiredRotation, DeltaTime, RotationSpeed);
+	PawnOwner->SetActorRotation(NewRotation);
 }
 
 void UEnemyMovementComponent::SetDefaultMovementMode()
@@ -123,9 +168,13 @@ bool UEnemyMovementComponent::FindFloor(FHitResult& OutHitResult) const
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(PawnOwner);
 
-	if (GetWorld()->SweepSingleByChannel(OutHitResult, CapsuleLocation, CapsuleLocation - FVector::UpVector * FloorSnapDistance,
-		Capsule->GetComponentQuat(), Capsule->GetCollisionObjectType(), Capsule->GetCollisionShape(1.0f), CollisionQueryParams)
-		&& OutHitResult.ImpactNormal.Z >= MaxFloorWalkableZ)
+	const bool bValidHit = GetWorld()->SweepSingleByChannel(OutHitResult, CapsuleLocation, CapsuleLocation - FVector::UpVector * FloorSnapDistance,
+		Capsule->GetComponentQuat(), Capsule->GetCollisionObjectType(), Capsule->GetCollisionShape(1.0f), CollisionQueryParams);
+
+	// const bool bValidHit = GetWorld()->LineTraceSingleByChannel(OutHitResult, CapsuleLocation, CapsuleLocation - FVector::UpVector * (FloorSnapDistance + Capsule->GetScaledCapsuleHalfHeight()),
+		// Capsule->GetCollisionObjectType(), CollisionQueryParams);
+
+	if (bValidHit && OutHitResult.ImpactNormal.Z >= MaxFloorWalkableZ)
 	{
 			return true;
 	}
@@ -144,13 +193,40 @@ bool UEnemyMovementComponent::SnapToFloor()
 		if (!(BasisNormal - HitResult.ImpactNormal).IsNearlyZero())
 		{
 			BasisNormal = HitResult.ImpactNormal;
-			BasisNormalRotator = FRotator(FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.X)),
+			/* BasisNormalRotator = FRotator(FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.X)),
 				0.0f,
-				FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.Y)));
+				FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.Y))); */
 		}
 	}
 
 	return bFoundFloor;
+}
+
+void UEnemyMovementComponent::RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed)
+{
+	// UE_LOG(LogTemp, Display, TEXT("DirectMove '%s' requested."), *MoveVelocity.ToString())
+	RequestedVelocity = MoveVelocity;
+}
+
+void UEnemyMovementComponent::RequestPathMove(const FVector& MoveInput)
+{
+	// UE_LOG(LogTemp, Display, TEXT("PathMove '%s' requested."), *MoveInput.ToString())
+	Super::RequestPathMove(MoveInput);
+}
+
+bool UEnemyMovementComponent::CanStartPathFollowing() const
+{
+	return true;
+}
+
+bool UEnemyMovementComponent::CanStopPathFollowing() const
+{
+	return !IsFalling();
+}
+
+void UEnemyMovementComponent::StopActiveMovement()
+{
+	RequestedVelocity = FVector::Zero();
 }
 
 bool UEnemyMovementComponent::IsFalling() const
