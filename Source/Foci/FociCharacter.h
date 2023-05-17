@@ -134,6 +134,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void Attack();
 
+	UFUNCTION()
+	void HitTarget_Internal(const FHitResult& HitResult);
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitTarget(const FHitResult& HitResult);
 

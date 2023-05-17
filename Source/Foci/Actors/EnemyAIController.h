@@ -9,7 +9,36 @@ class FOCI_API AEnemyAIController : public AAIController
 {
 	GENERATED_BODY()
 
+private:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting, meta = (AllowPrivateAccess = true))
+	TWeakObjectPtr<APawn> CurrentTarget;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Targeting|Walking", meta = (AllowPrivateAccess = true))
+	float MaxDistance = 50.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Targeting|Walking", meta = (AllowPrivateAccess = true))
+	float MinDistance = 25.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Targeting|Sight", meta = (AllowPrivateAccess = true))
+	float ConeViewingAngle = 60.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Targeting|Sight", meta = (AllowPrivateAccess = true))
+	float ViewDistance = 1000.0f;
+
+
+protected:
+	virtual void OnPossess(APawn* InPawn) override;
+
+	void SetTarget(APawn* Target);
+
+	virtual FVector GetDestination() const;
+
+	bool CanSeeTarget(APawn* Target) const;
+
+
+
+	TWeakObjectPtr<class AEnemy> EnemyPawn;
+
 public:
-	UFUNCTION(BlueprintCallable)
-	void SetNewMoveDestination(FVector Destination);
+	virtual void Tick(float DeltaTime) override;
 };

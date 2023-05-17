@@ -22,6 +22,7 @@
 #include "MarleMovementComponent.h"
 #include "Ladder.h"
 #include "Foci/Actors/Interactable.h"
+#include "Foci/Actors/Enemy.h"
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
@@ -78,7 +79,7 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	HitboxController = CreateDefaultSubobject<UHitboxController>(TEXT("Hitbox Controller"));
 	HitboxController->SetupAttachment(GetMesh());
-	HitboxController->HitDetectedDelegate.BindUObject(this, &AFociCharacter::HitTarget);
+	HitboxController->HitDetectedDelegate.BindUObject(this, &AFociCharacter::HitTarget_Internal);
 
 	ViewMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewMesh"));
 	ViewMesh->SetupAttachment(FirstPersonCamera);
@@ -330,6 +331,16 @@ void AFociCharacter::DisableFirstPerson()
 	{
 		CurrentWeapon->SetThirdPerson();
 	}
+}
+
+
+void AFociCharacter::HitTarget_Internal(const FHitResult& HitResult)
+{
+	if (AEnemy* Enemy = Cast<AEnemy>(HitResult.GetActor()))
+	{
+		Enemy->OnHit(this);
+	}
+	HitTarget(HitResult);
 }
 
 

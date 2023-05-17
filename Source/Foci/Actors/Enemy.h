@@ -38,4 +38,7 @@ public:
 
 	UFUNCTION()
 	void OnDeath();
+
+	UFUNCTION()
+	void OnHit(APawn* Attacker);
 };

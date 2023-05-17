@@ -44,3 +44,9 @@ void AEnemy::OnDeath()
 {
 	DropTable->SpawnDrops(GetActorLocation(), GetActorRotation(), 500.0f);
 }
+
+void AEnemy::OnHit(APawn* Attacker)
+{
+	const FVector DeltaLocation = Attacker->GetActorLocation() - GetActorLocation();
+	MovementComponent->AddImpulse(DeltaLocation.GetSafeNormal2D() * -300.0f + FVector(0.0f, 0.0f, 300.0f));
+}

@@ -19,6 +19,11 @@ void UEnemyMovementComponent::SetUpdatedComponent(USceneComponent* Component)
 	EnemyOwner = Cast<AEnemy>(PawnOwner);
 }
 
+void UEnemyMovementComponent::AddImpulse(FVector Impulse)
+{
+	PendingImpulses += Impulse;
+}
+
 void UEnemyMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -39,13 +44,19 @@ void UEnemyMovementComponent::HandleBlockingImpact(FHitResult ImpactHitResult)
 {
 	if (ImpactHitResult.IsValidBlockingHit())
 	{
-		Velocity -= Velocity.Dot(ImpactHitResult.ImpactNormal) * ImpactHitResult.ImpactNormal;
-	}
+		// DrawDebugDirectionalArrow(GetWorld(), EnemyOwner->GetActorLocation(), EnemyOwner->GetActorLocation() + ImpactHitResult.ImpactNormal * 100.0f, 50.0f, FColor::Blue, false, 2.0f);
+		float Dot = Velocity.Dot(ImpactHitResult.ImpactNormal);
+		if (Dot < 0.0f)
+		{
+			Velocity -= Dot * ImpactHitResult.ImpactNormal;
+		}
 
-	if (ImpactHitResult.ImpactNormal.Z >= MaxFloorWalkableZ)
-	{
-		MovementMode = EEnemyMovementMode::MOVE_Walking;
-		Basis = ImpactHitResult.GetComponent();
+		if (ImpactHitResult.ImpactNormal.Z >= MaxFloorWalkableZ)
+		{
+			MovementMode = EEnemyMovementMode::MOVE_Walking;
+			Basis = ImpactHitResult.GetComponent();
+			// EnemyOwner->AddActorWorldOffset(FVector(0.0f, 0.0f, 5.0f));
+		}
 	}
 }
 
@@ -69,6 +80,7 @@ void UEnemyMovementComponent::PhysMovement(float DeltaTime)
 void UEnemyMovementComponent::PhysFalling(float DeltaTime)
 {
 	Velocity += FVector::UnitZ() * GetWorld()->GetGravityZ() * DeltaTime;
+	Velocity += ConsumeImpulses();
 	FHitResult MoveHitResult;
 	SafeMoveUpdatedComponent(Velocity * DeltaTime, UpdatedComponent->GetComponentRotation(), true, MoveHitResult);
 
@@ -87,16 +99,22 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 	{
 		FrictionDelta = -PlanarVelocity;
 	}
-	if (!RequestedVelocity.IsNearlyZero())
-	{
-		Velocity = RequestedVelocity.GetSafeNormal2D() * MaxSpeed;
-	}
 	Velocity -= FrictionDelta;
 	Velocity += Acceleration * ConsumeInputVector();
+
+	if (!RequestedVelocity.IsNearlyZero())
+	{
+		// Accelerate towards the pathfinding velocity
+		FVector VelocityDelta = RequestedVelocity - Velocity;
+		VelocityDelta.Z = 0;
+		Velocity += VelocityDelta.GetUnsafeNormal() * Acceleration;
+	} 
+
 	Velocity = Velocity.GetClampedToMaxSize2D(MaxSpeed);
 
-	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + Velocity, 25.0f, FColor::Red, false, DeltaTime * 2.0f);
-	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + BasisNormal * 50.0f, 50.0f, FColor::Blue, false, 10.0f);
+	Velocity += ConsumeImpulses();
+
+	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + Velocity, 25.0f, FColor::Red, false, 2.0f);
 
 	FHitResult MoveHitResult;
 	const FVector DeltaLocation = Velocity * DeltaTime;
@@ -111,7 +129,7 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 	{
 		const FVector DesiredLocation = CapsuleComponent->GetComponentLocation() + DeltaLocation;
 		FHitResult StepUpHitResult;
-		const float StepUpHeight = 5.0f;
+		const float StepUpHeight = 15.0f;
 		FCollisionQueryParams CollisionQueryParams;
 		CollisionQueryParams.AddIgnoredActor(PawnOwner);
 
@@ -123,7 +141,7 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 			PawnOwner->AddActorWorldOffset(StepUpDelta);
 		}
 
-		HandleBlockingImpact(MoveHitResult);
+		// HandleBlockingImpact(MoveHitResult);
 	}
 	SetDefaultMovementMode();
 	UpdateRotation(DeltaTime);
@@ -147,6 +165,13 @@ void UEnemyMovementComponent::UpdateRotation(float DeltaTime)
 	PawnOwner->SetActorRotation(NewRotation);
 }
 
+FVector UEnemyMovementComponent::ConsumeImpulses()
+{
+	FVector Impulses = PendingImpulses;
+	PendingImpulses = FVector::Zero();
+	return Impulses;
+}
+
 void UEnemyMovementComponent::SetDefaultMovementMode()
 {
 	if (SnapToFloor())
@@ -160,6 +185,11 @@ void UEnemyMovementComponent::SetDefaultMovementMode()
 bool UEnemyMovementComponent::FindFloor(FHitResult& OutHitResult) const
 {
 	if (!GetWorld())
+	{
+		return false;
+	}
+	// Only find the floor if we are falling
+	if (Velocity.Z > KINDA_SMALL_NUMBER)
 	{
 		return false;
 	}
@@ -193,9 +223,8 @@ bool UEnemyMovementComponent::SnapToFloor()
 		if (!(BasisNormal - HitResult.ImpactNormal).IsNearlyZero())
 		{
 			BasisNormal = HitResult.ImpactNormal;
-			/* BasisNormalRotator = FRotator(FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.X)),
-				0.0f,
-				FMath::RadiansToDegrees(FGenericPlatformMath::Asin(-BasisNormal.Y))); */
+			const FVector Delta = HitResult.Location - EnemyOwner->GetCapsule()->GetComponentLocation();
+			EnemyOwner->AddActorWorldOffset(Delta);
 		}
 	}
 

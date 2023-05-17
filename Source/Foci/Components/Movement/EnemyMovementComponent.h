@@ -36,6 +36,8 @@ protected:
 
 	void UpdateRotation(float DeltaTime);
 
+	FVector ConsumeImpulses();
+
 	virtual void SetDefaultMovementMode();
 
 	virtual bool FindFloor(FHitResult& OutHitResult) const;
@@ -87,8 +89,13 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Movement|Pathfinding", meta = (AllowPrivateAccess = true))
 	FVector RequestedVelocity;
 
+	FVector PendingImpulses;
+
 public:
 	virtual void SetUpdatedComponent(USceneComponent* Component) override;
+
+	UFUNCTION(BlueprintCallable)
+	void AddImpulse(FVector Impulse);
 
 	bool IsFalling() const;
 
