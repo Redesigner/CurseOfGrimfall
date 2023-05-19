@@ -35,4 +35,5 @@ void UHealthComponent::SetMaxHealth(float NewMaxHealth)
 		CurrentHealth = NewMaxHealth;
 	}
 	MaxHealth = NewMaxHealth;
+	OnMaxHealthChanged.Broadcast(NewMaxHealth);
 }

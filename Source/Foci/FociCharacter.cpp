@@ -84,12 +84,12 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	ViewMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewMesh"));
 	ViewMesh->SetupAttachment(FirstPersonCamera);
 
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
 	DialogViewModel->SetModel(this);
 
 	Inventory = CreateDefaultSubobject<UInventoryTable>(TEXT("Inventory"));
-
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 }
 
 void AFociCharacter::Tick(float DeltaSeconds)
@@ -294,6 +294,11 @@ bool AFociCharacter::IsWeaponReady() const
 UInventoryTable* AFociCharacter::GetInventory()
 {
 	return Inventory;
+}
+
+UHealthComponent* AFociCharacter::GetHealthComponent()
+{
+	return HealthComponent;
 }
 
 

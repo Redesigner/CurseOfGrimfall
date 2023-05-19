@@ -208,6 +208,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UInventoryTable* GetInventory();
 
+	UFUNCTION(BlueprintCallable)
+	class UHealthComponent* GetHealthComponent();
+
 	const FDialogResponse& GetDialog() const;
 
 private:

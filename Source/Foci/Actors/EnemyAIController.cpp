@@ -3,6 +3,7 @@
 #include "Kismet/GameplayStatics.h" 
 
 #include "Foci/Actors/Enemy.h"
+#include "Foci/Components/Movement/EnemyMovementComponent.h"
 
 void AEnemyAIController::OnPossess(APawn* InPawn)
 {
@@ -28,10 +29,12 @@ FVector AEnemyAIController::GetDestination() const
 	const float TargetDistanceSquared = TargetDelta.SquaredLength();
 	float DesiredDistance = MaxDistance;
 
+	float ModifiedMaxDistance = MaxDistance - 35.0f;
+
 	if (TargetDistanceSquared < MaxDistance * MaxDistance)
 	{
 		// If the target is not closer than our min distance, we don't need to move
-		if (TargetDistanceSquared >= MinDistance * MinDistance)
+		if (TargetDistanceSquared >= ModifiedMaxDistance * ModifiedMaxDistance)
 		{
 			return EnemyPawn->GetActorLocation();
 		}
@@ -57,7 +60,7 @@ bool AEnemyAIController::CanSeeTarget(APawn* Target) const
 	// Currently, we are just looking directly at the target
 	const FVector TargetDistance = Target->GetActorLocation() - EyePosition;
 
-	if (TargetDistance.SquaredLength() > ViewDistance * ViewDistance)
+	if (TargetDistance.SquaredLength()  > ViewDistance * ViewDistance)
 	{
 		return false;
 	}
@@ -87,6 +90,31 @@ bool AEnemyAIController::CanSeeTarget(APawn* Target) const
 	return true;
 }
 
+void AEnemyAIController::SetStrafing(bool Value)
+{
+	bStrafing = Value;
+	EnemyPawn->GetEnemyMovementComponent()->SetOrientRotationToMovement(Value);
+}
+
+bool AEnemyAIController::IsCloseToTarget(APawn* Target, float Distance) const
+{
+	const FVector Delta = Target->GetActorLocation() - EnemyPawn->GetActorLocation();
+	float DistanceSquared = Delta.SquaredLength();
+
+	return (Distance * Distance) >= DistanceSquared;
+}
+
+void AEnemyAIController::TryExecuteAttack()
+{
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	if (TimerManager.IsTimerActive(AttackTimerHandle))
+	{
+		return;
+	}
+	EnemyPawn->Attack();
+	TimerManager.SetTimer(AttackTimerHandle, AttackCooldown, false);
+}
+
 void AEnemyAIController::Tick(float DeltaTime)
 {
 	if (!CurrentTarget.IsValid())
@@ -99,6 +127,19 @@ void AEnemyAIController::Tick(float DeltaTime)
 	}
 	Super::Tick(DeltaTime);
 	FVector Destination = GetDestination();
-	DrawDebugSphere(GetWorld(), Destination, 25.0f, 4, FColor::Blue, false, 2.0f * DeltaTime);
-	MoveTo(Destination);
+	// DrawDebugSphere(GetWorld(), Destination, 25.0f, 4, FColor::Blue, false, 2.0f * DeltaTime);
+	MoveTo(Destination); 
+
+	if (CurrentTarget.IsValid())
+	{
+		const FVector Delta = CurrentTarget->GetActorLocation() - EnemyPawn->GetActorLocation();
+		// UE_LOG(LogTemp, Display, TEXT("Target is %f from enemy"), Delta.Length())
+
+		SetStrafing(!IsCloseToTarget(CurrentTarget.Get(), MaxDistance * 2.0f));
+		SetControlRotation(Delta.ToOrientationRotator());
+		if (IsCloseToTarget(CurrentTarget.Get(), 150.0f))
+		{
+			TryExecuteAttack();
+		}
+	}
 }

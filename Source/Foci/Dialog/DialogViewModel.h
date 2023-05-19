@@ -12,6 +12,7 @@
 /**
  * 
  */
+ // Should be renamed to a generic viewmodel for player?
 UCLASS()
 class FOCI_API UDialogViewModel : public UObject
 {
@@ -20,11 +21,17 @@ class FOCI_API UDialogViewModel : public UObject
 public:
 	void SetModel(class AFociCharacter* Character);
 
-	void SetView(class UDialogWidget* Widget);
+	void SetDialogView(class UDialogWidget* Widget);
 
 	void SetDialog(FDialogResponse Response);
 
 	void RequestDialog();
+
+	UFUNCTION()
+	void HealthChanged(float NewHealth, float HealthPercentage);
+
+	UFUNCTION()
+	void MaxHealthChanged(float NewMaxHealth);
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogOptionsChanged, TArray<FText>, Options);
 
@@ -37,10 +44,19 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogTextChanged OnDialogTextChanged;
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthUpdated, float, Health, float, MaxHealth);
+
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthUpdated OnHealthUpdated;
+
 private:
 	FDialogResponse Dialog;
 
 	TWeakObjectPtr<class AFociCharacter> Model;
 
-	TWeakObjectPtr<class UDialogWidget> View;
+	TWeakObjectPtr<class UDialogWidget> DialogView;
+
+	float Health;
+
+	float MaxHealth;
 };

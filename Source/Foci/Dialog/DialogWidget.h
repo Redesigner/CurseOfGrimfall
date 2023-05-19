@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "Foci/UI/ViewModelWidget.h"
 
 #include "DialogViewModel.h"
 
@@ -13,7 +13,7 @@
  * 
  */
 UCLASS()
-class FOCI_API UDialogWidget : public UUserWidget
+class FOCI_API UDialogWidget : public UViewModelWidget
 {
 	GENERATED_BODY()
 
@@ -30,8 +30,7 @@ protected:
 	void Advance();
 
 public:
-	UFUNCTION(BlueprintCallable)
-	void BindViewModel(UDialogViewModel* DialogViewModel);
+	virtual void BindViewModel(UDialogViewModel* Model) override;
 
 	UFUNCTION(BlueprintCallable)
 	void DialogChanged(FText Dialog);
@@ -40,5 +39,4 @@ public:
 	uint8 GetSelectedOption() const;
 
 private:
-	TWeakObjectPtr<UDialogViewModel> DialogViewModel;
 };

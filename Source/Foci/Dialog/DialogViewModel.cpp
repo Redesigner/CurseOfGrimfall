@@ -5,17 +5,19 @@
 
 #include "Foci/FociCharacter.h"
 #include "Foci/Foci.h"
-
 #include "Foci/Dialog/DialogWidget.h"
+#include "Foci/Components/HealthComponent.h"
 
 void UDialogViewModel::SetModel(AFociCharacter* Character)
 {
 	Model = Character;
+	Character->GetHealthComponent()->OnHealthChanged.AddDynamic(this, &UDialogViewModel::HealthChanged);
+	Character->GetHealthComponent()->OnMaxHealthChanged.AddDynamic(this, &UDialogViewModel::MaxHealthChanged);
 }
 
-void UDialogViewModel::SetView(UDialogWidget* Widget)
+void UDialogViewModel::SetDialogView(UDialogWidget* Widget)
 {
-	View = Widget;
+	DialogView = Widget;
 }
 
 void UDialogViewModel::SetDialog(FDialogResponse Response)
@@ -35,6 +37,18 @@ void UDialogViewModel::RequestDialog()
 	}
 	FDialogRequest Request;
 	Request.DialogTitle = Dialog.DialogTitle;
-	Request.ResponseOption = View->GetSelectedOption();
+	Request.ResponseOption = DialogView->GetSelectedOption();
 	Model->RequestDialogFromLastNpc(Request);
+}
+
+void UDialogViewModel::HealthChanged(float NewHealth, float HealthPercentage)
+{
+	Health = NewHealth;
+	OnHealthUpdated.Broadcast(NewHealth, MaxHealth);
+}
+
+void UDialogViewModel::MaxHealthChanged(float NewMaxHealth)
+{
+	MaxHealth = NewMaxHealth;
+	OnHealthUpdated.Broadcast(Health, NewMaxHealth);
 }

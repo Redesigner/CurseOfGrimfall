@@ -19,6 +19,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChanged;
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxHealthChanged, float, NewMaxHealth);
+	UPROPERTY(BlueprintAssignable)
+	FOnMaxHealthChanged OnMaxHealthChanged;
+
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
 	UPROPERTY(BlueprintAssignable)
 	FOnDeath OnDeath;

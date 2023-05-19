@@ -95,12 +95,20 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 	const FVector Normal2D = Velocity.GetSafeNormal2D();
 	const FVector PlanarVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
 	FVector FrictionDelta = Normal2D * Friction;
+	float EffectiveMaxSpeed = MaxSpeed;
+	// If we aren't orienting our rotation to movement, then for now, assume we are strafing
+	if (!bOrientRotationToMovement)
+	{
+		EffectiveMaxSpeed = MaxStrafeSpeed;
+	}
+
 	if (FrictionDelta.SquaredLength() > PlanarVelocity.SquaredLength())
 	{
 		FrictionDelta = -PlanarVelocity;
 	}
 	Velocity -= FrictionDelta;
 	Velocity += Acceleration * ConsumeInputVector();
+	// ApplyRootMotionToVelocity(DeltaTime);
 
 	if (!RequestedVelocity.IsNearlyZero())
 	{
@@ -110,7 +118,7 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 		Velocity += VelocityDelta.GetUnsafeNormal() * Acceleration;
 	} 
 
-	Velocity = Velocity.GetClampedToMaxSize2D(MaxSpeed);
+	Velocity = Velocity.GetClampedToMaxSize2D(EffectiveMaxSpeed);
 
 	Velocity += ConsumeImpulses();
 
@@ -149,6 +157,15 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 
 void UEnemyMovementComponent::UpdateRotation(float DeltaTime)
 {
+	if (!bOrientRotationToMovement)
+	{
+		FRotator ControllerRotation = EnemyOwner->GetControlRotation();
+		ControllerRotation.Pitch = 0.0f;
+		ControllerRotation.Roll = 0.0f;
+		PawnOwner->SetActorRotation(ControllerRotation);
+		return;
+	}
+
 	const FVector Normal2D = Velocity.GetSafeNormal2D();
 
 	if (Normal2D.IsNearlyZero())
@@ -261,4 +278,9 @@ void UEnemyMovementComponent::StopActiveMovement()
 bool UEnemyMovementComponent::IsFalling() const
 {
 	return MovementMode == EEnemyMovementMode::MOVE_Falling;
+}
+
+void UEnemyMovementComponent::SetOrientRotationToMovement(bool Value)
+{
+	bOrientRotationToMovement = Value;
 }

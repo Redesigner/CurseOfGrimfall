@@ -12,12 +12,12 @@ void UDialogWidget::NativeConstruct()
 
 }
 
-void UDialogWidget::BindViewModel(UDialogViewModel* ViewModel)
+void UDialogWidget::BindViewModel(UDialogViewModel* Model)
 {
-	DialogViewModel = ViewModel;
+	Super::BindViewModel(Model);
 
-	DialogTextBlock->BindViewModel(ViewModel);
-	ViewModel->SetView(this);
+	DialogTextBlock->BindViewModel(Model);
+	ViewModel->SetDialogView(this);
 	ViewModel->OnDialogTextChanged.AddDynamic(DialogTextBlock, &UDialogTextBlock::SetDialog);
 	ViewModel->OnDialogTextChanged.AddDynamic(this, &UDialogWidget::DialogChanged);
 
@@ -45,6 +45,6 @@ void UDialogWidget::Advance()
 {
 	if (!DialogTextBlock->SkipAnimation())
 	{
-		DialogViewModel->RequestDialog();
+		ViewModel->RequestDialog();
 	}
 }

@@ -18,11 +18,21 @@ class FOCI_API AEnemy : public APawn
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class UEnemyMovementComponent* MovementComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class UHitboxController* HitboxController;
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Drops, meta = (AllowPrivateAccess = "true"))
 	class UDropTable* DropTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Drops, meta = (AllowPrivateAccess = "true"))
 	class UHealthComponent* HealthComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attacks, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attacks, meta = (AllowPrivateAccess = "true"))
+	float AttackDamage;
 
 public:
 	AEnemy(const FObjectInitializer& ObjectInitializer);
@@ -34,10 +44,18 @@ public:
 	class UCapsuleComponent* GetCapsule() const;
 
 	UFUNCTION(BlueprintCallable)
+	class UEnemyMovementComponent* GetEnemyMovementComponent() const;
+
+	UFUNCTION(BlueprintCallable)
 	void MoveForward();
 
 	UFUNCTION()
 	void OnDeath();
+
+	void Attack();
+
+	UFUNCTION()
+	void HitTarget_Internal(const FHitResult& HitResult);
 
 	UFUNCTION()
 	void OnHit(APawn* Attacker);

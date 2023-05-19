@@ -91,6 +91,9 @@ private:
 
 	FVector PendingImpulses;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement|Strafing", meta = (AllowPrivateAccess = true))
+	float MaxStrafeSpeed = 200.0f;
+
 public:
 	virtual void SetUpdatedComponent(USceneComponent* Component) override;
 
@@ -98,5 +101,7 @@ public:
 	void AddImpulse(FVector Impulse);
 
 	bool IsFalling() const;
+
+	void SetOrientRotationToMovement(bool Value);
 
 };

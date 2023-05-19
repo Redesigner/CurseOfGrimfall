@@ -25,6 +25,14 @@ private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Targeting|Sight", meta = (AllowPrivateAccess = true))
 	float ViewDistance = 1000.0f;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Behavior, meta = (AllowPrivateAccess = true))
+	bool bStrafing = false;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Behavior|Attacking", meta = (AllowPrivateAccess = true))
+	float AttackCooldown = 3.0f;
+
+	FTimerHandle AttackTimerHandle;
+	
 
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
@@ -35,6 +43,11 @@ protected:
 
 	bool CanSeeTarget(APawn* Target) const;
 
+	void SetStrafing(bool Value);
+
+	bool IsCloseToTarget(APawn* Target, float Distance) const;
+
+	void TryExecuteAttack();
 
 
 	TWeakObjectPtr<class AEnemy> EnemyPawn;
