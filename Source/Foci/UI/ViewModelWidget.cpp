@@ -12,5 +12,6 @@ void UViewModelWidget::NativeConstruct()
 
 void UViewModelWidget::BindViewModel(UDialogViewModel* Model)
 {
+	UE_LOG(LogTemp, Display, TEXT("Bound viewmodel to widget '%s'"), *GetFName().ToString())
 	ViewModel = Model;
 }

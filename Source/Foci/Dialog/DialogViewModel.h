@@ -49,6 +49,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthUpdated OnHealthUpdated;
 
+	float GetHealth() const;
+	
+	float GetMaxHealth() const;
+
 private:
 	FDialogResponse Dialog;
 

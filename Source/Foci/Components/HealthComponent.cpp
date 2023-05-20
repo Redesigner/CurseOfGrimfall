@@ -5,6 +5,11 @@ float UHealthComponent::GetCurrentHealth() const
 	return CurrentHealth;
 }
 
+float UHealthComponent::GetMaxHealth() const
+{
+	return MaxHealth;
+}
+
 float UHealthComponent::AddHealth(float Health)
 {
 	if (Health + CurrentHealth > MaxHealth)
@@ -24,6 +29,7 @@ float UHealthComponent::AddHealth(float Health)
 		CurrentHealth += Health;
 	}
 	const float HealthPercentage = MaxHealth == 0.0f ? 0.0f : CurrentHealth / MaxHealth;
+	// UE_LOG(LogTemp, Display, TEXT("%s's health changed, broadcasting delegate from Health Component"), *GetOwner()->GetFName().ToString())
 	OnHealthChanged.Broadcast(CurrentHealth, HealthPercentage);
 	return CurrentHealth;
 }

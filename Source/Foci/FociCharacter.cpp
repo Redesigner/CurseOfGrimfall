@@ -88,6 +88,8 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
 	DialogViewModel->SetModel(this);
+	DialogViewModel->HealthChanged(HealthComponent->GetCurrentHealth(), 1.0f);
+	DialogViewModel->MaxHealthChanged(HealthComponent->GetMaxHealth());
 
 	Inventory = CreateDefaultSubobject<UInventoryTable>(TEXT("Inventory"));
 }
@@ -129,6 +131,9 @@ void AFociCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+	// Bind the viewmodel here, just to be safe, and refresh the health state
+	HealthComponent->OnHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::HealthChanged);
+	HealthComponent->OnMaxHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::MaxHealthChanged);
 }
 
 bool AFociCharacter::CanJumpInternal_Implementation() const

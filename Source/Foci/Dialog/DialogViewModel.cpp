@@ -11,8 +11,8 @@
 void UDialogViewModel::SetModel(AFociCharacter* Character)
 {
 	Model = Character;
-	Character->GetHealthComponent()->OnHealthChanged.AddDynamic(this, &UDialogViewModel::HealthChanged);
-	Character->GetHealthComponent()->OnMaxHealthChanged.AddDynamic(this, &UDialogViewModel::MaxHealthChanged);
+	UE_LOG(LogTemp, Display, TEXT("Manually updating player health."))
+	OnHealthUpdated.Broadcast(Character->GetHealthComponent()->GetCurrentHealth(), Character->GetHealthComponent()->GetMaxHealth());
 }
 
 void UDialogViewModel::SetDialogView(UDialogWidget* Widget)
@@ -51,4 +51,14 @@ void UDialogViewModel::MaxHealthChanged(float NewMaxHealth)
 {
 	MaxHealth = NewMaxHealth;
 	OnHealthUpdated.Broadcast(Health, NewMaxHealth);
+}
+
+float UDialogViewModel::GetHealth() const
+{
+	return Health;
+}
+
+float UDialogViewModel::GetMaxHealth() const
+{
+	return MaxHealth;
 }

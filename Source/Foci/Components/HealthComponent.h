@@ -31,6 +31,9 @@ public:
 	float GetCurrentHealth() const;
 
 	UFUNCTION(BlueprintCallable)
+	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintCallable)
 	float AddHealth(float Health);
 
 	UFUNCTION(BlueprintCallable)
