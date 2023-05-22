@@ -52,6 +52,9 @@ public:
 	UFUNCTION()
 	void OnDeath();
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void Death();
+
 	void Attack();
 
 	UFUNCTION()

@@ -53,10 +53,17 @@ void AEnemy::MoveForward()
 void AEnemy::OnDeath()
 {
 	DropTable->SpawnDrops(GetActorLocation(), GetActorRotation(), 500.0f);
+	MovementComponent->SetMovementMode(EEnemyMovementMode::MOVE_None);
+	SetLifeSpan(3.0f);
+	Death();
 }
 
 void AEnemy::Attack()
 {
+	if (!HealthComponent->IsAlive())
+	{
+		return;
+	}
 	SkeletalMesh->GetAnimInstance()->Montage_Play(AttackMontage);
 }
 

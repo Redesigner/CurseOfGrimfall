@@ -20,6 +20,6 @@ void UPlayerHealthWidget::UpdateHealth(float NewHealth, float NewMaxHealth)
 
 	UCanvasPanelSlot* HealthBarSlot = Cast<UCanvasPanelSlot>(HealthBar->Slot);
 	FVector2D HealthBarSize = HealthBarSlot->GetSize();
-	HealthBarSize.X = NewMaxHealth * 10.0f;
+	HealthBarSize.X = NewMaxHealth * 50.0f;
 	HealthBarSlot->SetSize(HealthBarSize);
 }

@@ -38,4 +38,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetMaxHealth(float NewMaxHealth);
+
+	UFUNCTION(BlueprintCallable)
+	bool IsAlive() const;
 };

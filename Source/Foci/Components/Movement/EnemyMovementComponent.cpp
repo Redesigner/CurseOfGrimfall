@@ -24,6 +24,11 @@ void UEnemyMovementComponent::AddImpulse(FVector Impulse)
 	PendingImpulses += Impulse;
 }
 
+void UEnemyMovementComponent::SetMovementMode(EEnemyMovementMode NewMovementMode)
+{
+	MovementMode = NewMovementMode;
+}
+
 void UEnemyMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();

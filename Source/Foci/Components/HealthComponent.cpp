@@ -43,3 +43,8 @@ void UHealthComponent::SetMaxHealth(float NewMaxHealth)
 	MaxHealth = NewMaxHealth;
 	OnMaxHealthChanged.Broadcast(NewMaxHealth);
 }
+
+bool UHealthComponent::IsAlive() const
+{
+	return CurrentHealth > 0.0f;
+}

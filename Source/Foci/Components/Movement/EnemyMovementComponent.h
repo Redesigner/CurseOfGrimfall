@@ -100,6 +100,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddImpulse(FVector Impulse);
 
+	UFUNCTION(BlueprintCallable)
+	void SetMovementMode(EEnemyMovementMode NewMovementMode);
+
 	bool IsFalling() const;
 
 	void SetOrientRotationToMovement(bool Value);
