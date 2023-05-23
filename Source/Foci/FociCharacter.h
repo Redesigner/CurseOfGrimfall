@@ -94,9 +94,11 @@ class AFociCharacter : public ACharacter
 
 	APlayerController* PlayerController;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
+	bool bHasFocusTarget = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
-	TWeakObjectPtr<AActor> FocusTarget;
+	TWeakObjectPtr<class AEnemy> FocusTarget;
 
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
@@ -191,7 +193,7 @@ public:
 	void Interact();
 
 	UFUNCTION(BlueprintCallable)
-	void SetFocusTarget(AActor* Target);
+	void SetFocusTarget(class AEnemy* Target);
 
 	UFUNCTION(BlueprintCallable)
 	void ClearFocusTarget();

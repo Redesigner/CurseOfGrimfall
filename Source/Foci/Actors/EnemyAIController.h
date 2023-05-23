@@ -54,4 +54,7 @@ protected:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+	// Try to set the target externally, typically when the enemy is hit
+	virtual void TrySetTarget(APawn* Target);
 };

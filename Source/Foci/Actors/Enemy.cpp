@@ -1,6 +1,7 @@
 #include "Enemy.h"
 
 #include "Foci/Actors/DropTable.h"
+#include "Foci/Actors/EnemyAIController.h"
 #include "Foci/Components/HealthComponent.h"
 #include "Foci/Components/Movement/EnemyMovementComponent.h"
 #include "Foci/Components/HitboxController.h"
@@ -45,6 +46,11 @@ UEnemyMovementComponent* AEnemy::GetEnemyMovementComponent() const
 	return MovementComponent;
 }
 
+const USkeletalMeshComponent* AEnemy::GetSkeletalMeshComponent() const
+{
+	return SkeletalMesh;
+}
+
 void AEnemy::MoveForward()
 {
 	AddMovementInput(GetActorForwardVector());
@@ -55,12 +61,13 @@ void AEnemy::OnDeath()
 	DropTable->SpawnDrops(GetActorLocation(), GetActorRotation(), 500.0f);
 	MovementComponent->SetMovementMode(EEnemyMovementMode::MOVE_None);
 	SetLifeSpan(3.0f);
+	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Death();
 }
 
 void AEnemy::Attack()
 {
-	if (!HealthComponent->IsAlive())
+	if (!HealthComponent->IsAlive() || MovementComponent->IsFalling())
 	{
 		return;
 	}
@@ -82,4 +89,10 @@ void AEnemy::OnHit(APawn* Attacker)
 {
 	const FVector DeltaLocation = Attacker->GetActorLocation() - GetActorLocation();
 	MovementComponent->AddImpulse(DeltaLocation.GetSafeNormal2D() * -300.0f + FVector(0.0f, 0.0f, 300.0f));
+	
+	if (AEnemyAIController* EnemyAI = Cast<AEnemyAIController>(GetController()))
+	{
+		// Dont let them get away with it!!!
+		EnemyAI->TrySetTarget(Attacker);
+	}
 }

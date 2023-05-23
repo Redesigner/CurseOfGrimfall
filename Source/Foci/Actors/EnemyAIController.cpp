@@ -143,3 +143,11 @@ void AEnemyAIController::Tick(float DeltaTime)
 		}
 	}
 }
+
+void AEnemyAIController::TrySetTarget(APawn* Target)
+{
+	if (!CurrentTarget.IsValid())
+	{
+		CurrentTarget = Target;
+	}
+}

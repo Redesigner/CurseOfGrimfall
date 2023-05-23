@@ -84,7 +84,7 @@ void UEnemyMovementComponent::PhysMovement(float DeltaTime)
 
 void UEnemyMovementComponent::PhysFalling(float DeltaTime)
 {
-	Velocity += FVector::UnitZ() * GetWorld()->GetGravityZ() * DeltaTime;
+	Velocity += FVector(0.0f, 0.0f, GetWorld()->GetGravityZ() * DeltaTime);
 	Velocity += ConsumeImpulses();
 	FHitResult MoveHitResult;
 	SafeMoveUpdatedComponent(Velocity * DeltaTime, UpdatedComponent->GetComponentRotation(), true, MoveHitResult);
@@ -101,43 +101,51 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 	const FVector PlanarVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
 	FVector FrictionDelta = Normal2D * Friction;
 	float EffectiveMaxSpeed = MaxSpeed;
-	// If we aren't orienting our rotation to movement, then for now, assume we are strafing
+
+	// If we aren't orienting our rotation to movement, then for now, assume we are strafing and limit the speed
 	if (!bOrientRotationToMovement)
 	{
 		EffectiveMaxSpeed = MaxStrafeSpeed;
 	}
 
+	// Limit the friction so that it doesn't cause the pawn to accelerate backwards -- this isn't how friction works in real life!
 	if (FrictionDelta.SquaredLength() > PlanarVelocity.SquaredLength())
 	{
 		FrictionDelta = -PlanarVelocity;
 	}
 	Velocity -= FrictionDelta;
-	Velocity += Acceleration * ConsumeInputVector();
-	// ApplyRootMotionToVelocity(DeltaTime);
 
-	if (!RequestedVelocity.IsNearlyZero())
+	// Ignore our inputs here if we have root motion
+	if (!EnemyOwner->GetSkeletalMeshComponent()->IsPlayingRootMotion())
 	{
-		// Accelerate towards the pathfinding velocity
-		FVector VelocityDelta = RequestedVelocity - Velocity;
-		VelocityDelta.Z = 0;
-		Velocity += VelocityDelta.GetUnsafeNormal() * Acceleration;
-	} 
+		Velocity += Acceleration * ConsumeInputVector();
+		// ApplyRootMotionToVelocity(DeltaTime);
+
+		if (!RequestedVelocity.IsNearlyZero())
+		{
+			// Treat our requested velocity as a directional vector, since it can be a very large number
+			FVector VelocityDelta = RequestedVelocity - Velocity;
+			VelocityDelta.Z = 0;
+			Velocity += VelocityDelta.GetUnsafeNormal() * Acceleration;
+		}
+	}
 
 	Velocity = Velocity.GetClampedToMaxSize2D(EffectiveMaxSpeed);
 
+	// Apply any impulses we have after we've applied the friction
 	Velocity += ConsumeImpulses();
 
 	// DrawDebugDirectionalArrow(GetWorld(), PawnOwner->GetActorLocation(), PawnOwner->GetActorLocation() + Velocity, 25.0f, FColor::Red, false, 2.0f);
 
 	FHitResult MoveHitResult;
 	const FVector DeltaLocation = Velocity * DeltaTime;
-	// const FVector DeltaLocation = RequestedVelocity.GetClampedToMaxSize(MaxSpeed) * DeltaTime;
 	const float FloorDotDelta = (BasisNormal | DeltaLocation);
 	FVector RampMovement(DeltaLocation.X, DeltaLocation.Y, -FloorDotDelta / BasisNormal.Z);
 
 	SafeMoveUpdatedComponent(RampMovement, UpdatedComponent->GetComponentRotation(), true, MoveHitResult);
 
 	UCapsuleComponent* CapsuleComponent = EnemyOwner->GetCapsule();
+	// If we hit a wall here, see if we can step over it, by doing a capsule cast down from our desired location
 	if (MoveHitResult.IsValidBlockingHit())
 	{
 		const FVector DesiredLocation = CapsuleComponent->GetComponentLocation() + DeltaLocation;
@@ -153,7 +161,6 @@ void UEnemyMovementComponent::PhysWalking(float DeltaTime)
 			const FVector StepUpDelta = StepUpHitResult.Location - CapsuleComponent->GetComponentLocation();
 			PawnOwner->AddActorWorldOffset(StepUpDelta);
 		}
-
 		// HandleBlockingImpact(MoveHitResult);
 	}
 	SetDefaultMovementMode();
@@ -179,7 +186,6 @@ void UEnemyMovementComponent::UpdateRotation(float DeltaTime)
 	}
 	FRotator CurrentRotation = PawnOwner->GetActorRotation();
 	const float DesiredYaw = FMath::RadiansToDegrees(FMath::Atan2(Normal2D.Y, Normal2D.X));
-	// const float DeltaYaw = FMath::FindDeltaAngleDegrees(DesiredYaw, CurrentRotation.Yaw);
 	const float DeltaYaw = FMath::FInterpConstantTo(CurrentRotation.Yaw, DesiredYaw, DeltaTime, RotationSpeed);
 	FRotator DesiredRotation = CurrentRotation;
 	DesiredRotation.Yaw = DesiredYaw;
@@ -246,6 +252,7 @@ bool UEnemyMovementComponent::SnapToFloor()
 		{
 			BasisNormal = HitResult.ImpactNormal;
 			const FVector Delta = HitResult.Location - EnemyOwner->GetCapsule()->GetComponentLocation();
+			// Apply the "snap" to our actor, just for safety
 			EnemyOwner->AddActorWorldOffset(Delta);
 		}
 	}

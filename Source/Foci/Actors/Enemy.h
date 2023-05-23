@@ -47,6 +47,9 @@ public:
 	class UEnemyMovementComponent* GetEnemyMovementComponent() const;
 
 	UFUNCTION(BlueprintCallable)
+	const class USkeletalMeshComponent* GetSkeletalMeshComponent() const;
+
+	UFUNCTION(BlueprintCallable)
 	void MoveForward();
 
 	UFUNCTION()

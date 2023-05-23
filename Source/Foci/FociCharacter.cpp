@@ -110,6 +110,11 @@ void AFociCharacter::Tick(float DeltaSeconds)
 	}
 	if (HasTarget())
 	{
+		if (!FocusTarget.IsValid() || !FocusTarget->GetHealthComponent()->IsAlive())
+		{
+			ClearFocusTarget();
+			return;
+		}
 		LookAtTarget();
 	}
 }
@@ -187,7 +192,7 @@ void AFociCharacter::SetInputEnabled(bool bEnabled)
 
 bool AFociCharacter::HasTarget() const
 {
-	return FocusTarget.IsValid();
+	return bHasFocusTarget;
 }
 
 void AFociCharacter::LookAtTarget()
@@ -229,10 +234,10 @@ void AFociCharacter::Interact()
 	bool bFoundTarget = false;
 	for (AActor* Actor : OverlappingActors)
 	{
-		if (Actor->ActorHasTag(TEXT("Targetable")))
+		if (AEnemy* Enemy = Cast<AEnemy>(Actor))
 		{
 			bFoundTarget = true;
-			SetFocusTarget(Actor);
+			SetFocusTarget(Enemy);
 			continue;
 		}
 		if (UActorComponent* DialogActorComponent = Actor->GetComponentByClass(UDialogComponent::StaticClass()) )
@@ -255,8 +260,9 @@ void AFociCharacter::Interact()
 
 
 
-void AFociCharacter::SetFocusTarget(AActor* Target)
+void AFociCharacter::SetFocusTarget(AEnemy* Target)
 {
+	bHasFocusTarget = true;
 	FocusTarget = Target;
 	MarleMovementComponent->bOrientRotationToMovement = false;
 	FRotator ActorRotation = GetActorRotation();
@@ -272,6 +278,7 @@ void AFociCharacter::SetFocusTarget(AActor* Target)
 
 void AFociCharacter::ClearFocusTarget()
 {
+	bHasFocusTarget = false;
 	FocusTarget = nullptr;
 	MarleMovementComponent->bOrientRotationToMovement = true;
 	if (bWeaponReady)
@@ -348,6 +355,7 @@ void AFociCharacter::HitTarget_Internal(const FHitResult& HitResult)
 {
 	if (AEnemy* Enemy = Cast<AEnemy>(HitResult.GetActor()))
 	{
+		Enemy->GetHealthComponent()->AddHealth(-1.0f);
 		Enemy->OnHit(this);
 	}
 	HitTarget(HitResult);
