@@ -1,5 +1,11 @@
 #include "Pickup.h"
 
+
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h" 
+
+#include "Foci/FociCharacter.h"
+
 APickup::APickup(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
@@ -27,6 +33,26 @@ void APickup::Tick(float DeltaTime)
 		Velocity = FVector::Zero();
 		bIsMoving = false;
 	}
+}
+
+bool APickup::Pickup(AFociCharacter* Character)
+{
+	if (!bActive)
+	{
+		return false;
+	}
+	bActive = false;
+	AttachToActor(Character, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	AddActorWorldOffset(FVector(0.0f, 0.0f, DisplayHeight));
+	bIsMoving = false;
+	SetLifeSpan(DisplayTime);
+	
+	if (PickupSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), PickupSound);
+	}
+	OnPickup(Character);
+	return true;
 }
 
 FName APickup::GetItemName()

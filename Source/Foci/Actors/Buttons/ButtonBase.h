@@ -34,6 +34,6 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(BlueprintReadWrite, EditInstanceOnly, Category = Button, meta = (AllowPrivateAccess = true))
-	TWeakObjectPtr<AActor> Target;
+	TSoftObjectPtr<AActor> Target;
 
 };

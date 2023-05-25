@@ -174,8 +174,10 @@ void AFociCharacter::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	if (OtherActor->IsA<APickup>())
 	{
 		APickup* Pickup = Cast<APickup>(OtherActor);
-		Inventory->GiveItem(Pickup->GetItemName(), Pickup->GetItemCount());
-		Pickup->OnPickup(this);
+		if (Pickup->Pickup(this))
+		{
+			Inventory->GiveItem(Pickup->GetItemName(), Pickup->GetItemCount());
+		}
 	}
 }
 
