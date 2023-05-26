@@ -182,6 +182,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetInputEnabled(bool bEnabled);
 
+	UFUNCTION(BlueprintCallable)
+	void ResetCameraRotation();
+
 
 	UFUNCTION(BlueprintCallable)
 	bool HasTarget() const;

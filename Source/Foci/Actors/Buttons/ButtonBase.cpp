@@ -3,6 +3,7 @@
 #include "Foci/Foci.h"
 #include "Foci/InteractableInterface.h"
 #include "Foci/FociCharacter.h"
+#include "Foci/Actors/Buttons/Triggerable.h"
 
 AButtonBase::AButtonBase()
 {
@@ -19,12 +20,7 @@ void AButtonBase::Trigger(AActor* Source)
 		UE_LOG(LogButtonSystem, Warning, TEXT("Button '%s' was pressed, but it does not have a target."), *GetFName().ToString())
 		return;
 	}
-	if (!Target->Implements<UInteractableInterface>())
-	{
-		UE_LOG(LogButtonSystem, Warning, TEXT("Button '%s' was pressed, but target did not implement interactable interface."), *GetFName().ToString())
-		return;
-	}
-	IInteractableInterface::Execute_Interact(Target.Get(), Cast<AFociCharacter>(Source));
+	Target->Trigger(Source);
 	bButtonPressed = true;
 	OnTriggered(Source);
 }

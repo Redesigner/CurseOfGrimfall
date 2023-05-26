@@ -22,9 +22,7 @@ class FOCI_API IInteractableInterface
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 
-	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent)
-	void Interact(class ACharacter* Source);
+	virtual void Interact(class AFociCharacter* Source) = 0;
 };

@@ -8,7 +8,8 @@ public class Foci : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput", "AIModule" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "EnhancedInput",
+			"AIModule", "ActorSequence", "MovieScene" });
 
         PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
     }

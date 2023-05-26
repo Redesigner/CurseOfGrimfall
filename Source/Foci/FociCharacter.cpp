@@ -192,6 +192,11 @@ void AFociCharacter::SetInputEnabled(bool bEnabled)
 	bInputEnabled = bEnabled;
 }
 
+void AFociCharacter::ResetCameraRotation()
+{
+	Controller->SetControlRotation(GetActorRotation());
+}
+
 bool AFociCharacter::HasTarget() const
 {
 	return bHasFocusTarget;
@@ -224,6 +229,10 @@ void AFociCharacter::GrabLadder(ALadder* Ladder)
 // Interaction
 void AFociCharacter::Interact()
 {
+	if (!bInputEnabled)
+	{
+		return;
+	}
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	if (TimerManager.IsTimerActive(InteractDebounceTimer))
 	{
@@ -248,9 +257,9 @@ void AFociCharacter::Interact()
 			LastInteractedNPC->RequestDialog(this, FDialogRequest());
 			continue;
 		}
-		if (Actor->Implements<UInteractableInterface>())
+		if (IInteractableInterface* Interactable = Cast<IInteractableInterface>(Actor))
 		{
-			IInteractableInterface::Execute_Interact(Actor, this);
+			Interactable->Interact(this);
 		}
 	}
 	if (!bFoundTarget)
@@ -483,6 +492,10 @@ void AFociCharacter::Primary(const FInputActionValue& Value)
 
 void AFociCharacter::Secondary(const FInputActionValue& Value)
 {
+	if (!bInputEnabled)
+	{
+		return;
+	}
 	if (bFirstPersonMode)
 	{
 		DisableFirstPerson();
