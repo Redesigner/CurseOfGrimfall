@@ -12,6 +12,7 @@ class FOCI_API AWeaponTool : public AActor
 {
 	GENERATED_BODY()
 
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class USceneComponent* ThirdPersonRoot;
 
@@ -24,19 +25,19 @@ public:
 	virtual void Destroyed() override;
 
 	UFUNCTION(BlueprintCallable)
-	void SetFirstPerson();
+	virtual void SetFirstPerson();
 
 	UFUNCTION(BlueprintCallable)
-	void SetThirdPerson();
+	virtual void SetThirdPerson();
 
 	void AttachComponentsToSockets(class USkeletalMeshComponent* ThirdPersonMesh, USkeletalMeshComponent* FirstPersonMesh, bool bStartFirstPerson = false, FName SocketName = NAME_None);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void OnFire(ACharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
+	void OnFire(class AFociCharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
 
-	virtual void Fire(ACharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
+	virtual void Fire(class AFociCharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
 
-	virtual void Draw();
+	virtual void Draw(class AFociCharacter* Character);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetWeaponDrawn();

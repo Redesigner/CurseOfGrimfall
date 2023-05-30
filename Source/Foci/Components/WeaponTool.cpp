@@ -6,7 +6,7 @@
 #include "Components/SceneComponent.h"
 
 AWeaponTool::AWeaponTool(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root Component"));
 
@@ -59,13 +59,13 @@ void AWeaponTool::AttachComponentsToSockets(USkeletalMeshComponent* ThirdPersonM
 	}
 }
 
-void AWeaponTool::Fire(ACharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation)
+void AWeaponTool::Fire(AFociCharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation)
 {
 	OnFire(Character, DefaultOrigin, DefaultRotation);
 	bDrawn = false;
 }
 
-void AWeaponTool::Draw()
+void AWeaponTool::Draw(AFociCharacter* Character)
 {
 	bDrawn = true;
 }

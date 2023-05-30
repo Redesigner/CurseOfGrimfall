@@ -166,14 +166,13 @@ void AFociCharacter::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 		return;
 	}
 
-	if (OtherActor->IsA<ALadder>())
+	if (ALadder* Ladder = Cast<ALadder>(OtherActor))
 	{
-		GrabLadder(Cast<ALadder>(OtherActor));
+		GrabLadder(Ladder);
 	}
 
-	if (OtherActor->IsA<APickup>())
+	if (APickup* Pickup = Cast<APickup>(OtherActor))
 	{
-		APickup* Pickup = Cast<APickup>(OtherActor);
 		if (Pickup->Pickup(this))
 		{
 			Inventory->GiveItem(Pickup->GetItemName(), Pickup->GetItemCount());
@@ -185,6 +184,11 @@ void AFociCharacter::MoveToLocation(FVector Location)
 {
 	bMovingToLocation = true;
 	Destination = Location;
+}
+
+void AFociCharacter::TryDisableFirstPerson()
+{
+	DisableFirstPerson();
 }
 
 void AFociCharacter::SetInputEnabled(bool bEnabled)
@@ -398,7 +402,7 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
-		UE_LOG(LogTemp, Display, TEXT("Attaching PlayerInputComponent to %s"), *GetFName().ToString())
+		// UE_LOG(LogTemp, Display, TEXT("Attaching PlayerInputComponent to %s"), *GetFName().ToString())
 
 		//Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFociCharacter::Move);
@@ -416,6 +420,10 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		//Slot1
 		EnhancedInputComponent->BindAction(Slot1Action, ETriggerEvent::Started, this, &AFociCharacter::Slot1Pressed);
 		EnhancedInputComponent->BindAction(Slot1Action, ETriggerEvent::Completed, this, &AFociCharacter::Slot1Released);
+
+		//Slot2
+		EnhancedInputComponent->BindAction(Slot2Action, ETriggerEvent::Started, this, &AFociCharacter::Slot2Pressed);
+		EnhancedInputComponent->BindAction(Slot2Action, ETriggerEvent::Completed, this, &AFociCharacter::Slot2Released);
 	}
 
 }
@@ -513,35 +521,62 @@ void AFociCharacter::Secondary(const FInputActionValue& Value)
 	Attack();
 }
 
-
-
 void AFociCharacter::Slot1Pressed(const FInputActionValue& Value)
 {
+	SlotPressed(0);
+}
+
+void AFociCharacter::Slot1Released(const FInputActionValue& Value)
+{
+	SlotReleased(0);
+}
+
+void AFociCharacter::Slot2Pressed(const FInputActionValue& Value)
+{
+	SlotPressed(1);
+}
+
+void AFociCharacter::Slot2Released(const FInputActionValue& Value)
+{
+	SlotReleased(1);
+}
+
+
+
+void AFociCharacter::SlotPressed(uint8 SlotIndex)
+{
+	if (!Weapons[SlotIndex])
+	{
+		UE_LOG(LogWeaponSystem, Warning, TEXT("Weapon slot '%i' is null. Check that the weapon has been assigned properly."), SlotIndex)
+		return;
+	}
+
 	// If we aren't targeting something, we want to enter first-person mode, first
 	// third-person mode and using a slotted weapon/tool aren't compatible right now
 	if (!HasTarget() && !bFirstPersonMode)
 	{
 		EnableFirstPerson();
-		ReadyWeapon(Weapons[0]);
+		ReadyWeapon(Weapons[SlotIndex]);
 		return;
 	}
 	// we have a target, but our weapon isn't ready, so ready it
 	if (!bWeaponReady)
 	{
-		ReadyWeapon(Weapons[0]);
+		ReadyWeapon(Weapons[SlotIndex]);
 	}
 	if (!bWeaponDrawn)
 	{
 		if (CurrentWeapon)
 		{
-			CurrentWeapon->Draw();
+			CurrentWeapon->Draw(this);
 		}
 		bWeaponDrawn = true;
 	}
 }
 
-void AFociCharacter::Slot1Released(const FInputActionValue& Value)
+void AFociCharacter::SlotReleased(uint8 SlotIndex)
 {
+	UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
 	if (!bWeaponDrawn || !bWeaponReady)
 	{
 		return;
@@ -579,6 +614,7 @@ void AFociCharacter::FireWeapon()
 	{
 		return;
 	}
+	UE_LOG(LogWeaponSystem, Display, TEXT("Firing weapon '%s'"), *CurrentWeapon->GetFName().ToString())
 	CurrentWeapon->Fire(this, GetActorLocation() + FVector::UpVector * 35.0f,
 		HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
 }
@@ -589,6 +625,11 @@ void AFociCharacter::FireWeapon()
 const FDialogResponse& AFociCharacter::GetDialog() const
 {
 	return CurrentDialog;
+}
+
+float AFociCharacter::GetTetherLength() const
+{
+	return TetherLength;
 }
 
 void AFociCharacter::SetDialog(FDialogResponse Dialog)

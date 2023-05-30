@@ -61,6 +61,11 @@ class FOCI_API UMarleMovementComponent : public UCharacterMovementComponent
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Climbing|Ladder", Transient, meta = (AllowPrivateAccess = "true"))
 	float DistanceAlongLadder = 0.0f;
 
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Tethered, Transient, meta = (AllowPrivateAccess = "true"))
+	float TetherVelocity = 200.0f;
+
+
 protected:
 	virtual bool MoveUpdatedComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, ETeleportType Teleport) override;
 
@@ -93,6 +98,14 @@ public:
 
 	EClimbingSurfaceType GetClimbingSurfaceType() const;
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTetherBroken);
+	FOnTetherBroken OnTetherBroken;
+
+	void ActivateTether(FVector Location);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTetherLengthChanged, float, Length);
+	FOnTetherLengthChanged OnTetherLengthChanged;
+
 
 private:
 	bool IsMantling() const;
@@ -116,9 +129,14 @@ private:
 
 	void PhysMantling(float DeltaTime, int32 Iterations);
 
+	// Pull the player to the object
+	void PhysTethered(float DeltaTime, int32 Iterations);
+
 	void ReleaseLedge();
 
 	void ReleaseLadder();
+
+	void SetTetherLength(float Length);
 
 	bool bMantling = false;
 
@@ -127,4 +145,8 @@ private:
 	float LedgeClimbTimeHeld = 0.0f;
 
 	bool bPressingIntoWall = false;
+
+	FVector TetherDestination;
+
+	float TetherLength;
 };

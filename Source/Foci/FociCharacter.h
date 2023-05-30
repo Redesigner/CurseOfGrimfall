@@ -66,9 +66,13 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SecondaryAction;
 
+
+	/** Action slots **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
 	class UInputAction* Slot1Action;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
+	class UInputAction* Slot2Action;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
@@ -124,9 +128,15 @@ protected:
 
 	void Secondary(const FInputActionValue& Value);
 
+	// Is there a better way to do this?
 	void Slot1Pressed(const FInputActionValue& Value);
-
 	void Slot1Released(const FInputActionValue& Value);
+	void Slot2Pressed(const FInputActionValue& Value);
+	void Slot2Released(const FInputActionValue& Value);
+
+	void SlotPressed(uint8 SlotIndex);
+
+	void SlotReleased(uint8 SlotIndex);
 
 	void ReadyWeapon(TSubclassOf<class AWeaponTool> Weapon);
 
@@ -177,7 +187,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void Mantle(FVector ResultingLocation);
 
-
+	void TryDisableFirstPerson();
 
 	UFUNCTION(BlueprintCallable)
 	void SetInputEnabled(bool bEnabled);
@@ -218,6 +228,10 @@ public:
 
 	const FDialogResponse& GetDialog() const;
 
+	float GetTetherLength() const;
+
+	void SetTetherLength(float Length);
+
 private:
 	void EnableFirstPerson();
 
@@ -232,6 +246,8 @@ private:
 	bool bWeaponReady = false;
 
 	FVector Destination;
+
+	float TetherLength;
 
 public:
 	//////////////////////////////////////

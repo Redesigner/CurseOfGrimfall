@@ -45,6 +45,11 @@ void UMarleMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 		case 0:
 			PhysClimbing(DeltaTime, Iterations);
 			break;
+
+		case 1:
+			PhysTethered(DeltaTime, Iterations);
+			break;
+
 		default: break;
 	}
 }
@@ -264,10 +269,13 @@ bool UMarleMovementComponent::CanGrabLedge(UPrimitiveComponent* CapsuleComponent
 	return true;
 }
 
-bool UMarleMovementComponent::IsMantling() const
+void UMarleMovementComponent::ActivateTether(FVector Location)
 {
-	return bMantling;
+	// 1 represents the 'Tethered' movement mode -- it's not ideal to represent it this way, but it fits with the existing modes easily
+	SetMovementMode(EMovementMode::MOVE_Custom, 1);
+	TetherDestination = Location;
 }
+
 
 void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 {
@@ -287,6 +295,11 @@ void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 bool UMarleMovementComponent::UseDirectInput() const
 {
 	return MovementMode == EMovementMode::MOVE_Custom;
+}
+
+bool UMarleMovementComponent::IsMantling() const
+{
+	return bMantling;
 }
 
 void UMarleMovementComponent::GrabLedge(UPrimitiveComponent* LedgeComponent, const FVector& WallNormal, const FVector& LedgeLocation)
@@ -416,6 +429,28 @@ void UMarleMovementComponent::PhysMantling(float DeltaTime, int32 Iterations)
 	SafeMoveUpdatedComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), false, HitResult);
 }
 
+// Move along the tether, but break if we hit something
+void UMarleMovementComponent::PhysTethered(float DeltaTime, int32 Iterations)
+{
+	const FVector DeltaDestination = TetherDestination - UpdatedComponent->GetComponentLocation();
+	float DistanceMovedThisTick = TetherVelocity * DeltaTime;
+
+	const float DeltaLengthSquared = DeltaDestination.SquaredLength();
+	const float DistanceMovedThisTickSquared = DistanceMovedThisTick * DistanceMovedThisTick;
+	// If we are trying to move further than our actual separation, just use our separation as the move
+	const FVector RequestedMovement = DistanceMovedThisTickSquared > DeltaLengthSquared ? DeltaDestination : DistanceMovedThisTick * DeltaDestination.GetSafeNormal();
+	FHitResult TetherMoveHitResult;
+	SafeMoveUpdatedComponent(RequestedMovement, UpdatedComponent->GetComponentRotation(), true, TetherMoveHitResult);
+	if (TetherMoveHitResult.bBlockingHit)
+	{
+		SetDefaultMovementMode();
+		OnTetherBroken.Broadcast();
+	}
+	const FVector NewDifference = TetherDestination - UpdatedComponent->GetComponentLocation();
+	SetTetherLength(NewDifference.Length());
+}
+
+
 void UMarleMovementComponent::ReleaseLedge()
 { 
 	UE_LOG(LogTemp, Display, TEXT("Released Ledge"))
@@ -432,6 +467,12 @@ void UMarleMovementComponent::ReleaseLadder()
 	LadderBase = nullptr;
 	DistanceAlongLadder = 0.0f;
 	bMantling = true;
+}
+
+void UMarleMovementComponent::SetTetherLength(float Length)
+{
+	TetherLength = Length;
+	OnTetherLengthChanged.Broadcast(Length);
 }
 
 FVector UMarleMovementComponent::GetGrabLocation() const
