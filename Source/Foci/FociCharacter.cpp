@@ -568,7 +568,7 @@ void AFociCharacter::SlotPressed(uint8 SlotIndex)
 	{
 		if (CurrentWeapon)
 		{
-			CurrentWeapon->Draw(this);
+			CurrentWeapon->DrawWeapon(this);
 		}
 		bWeaponDrawn = true;
 	}
@@ -593,6 +593,7 @@ void AFociCharacter::ReadyWeapon(TSubclassOf<class AWeaponTool> Weapon)
 		return;
 	}
 	CurrentWeapon = Cast<AWeaponTool>(GetWorld()->SpawnActor(Weapon));
+	CurrentWeapon->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	CurrentWeapon->AttachComponentsToSockets(GetMesh(), ViewMesh, bFirstPersonMode, TEXT("Handle_R"));
 	bWeaponReady = true;
 }

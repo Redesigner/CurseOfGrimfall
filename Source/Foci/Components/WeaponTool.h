@@ -37,7 +37,7 @@ public:
 
 	virtual void Fire(class AFociCharacter* Character, FVector DefaultOrigin, FRotator DefaultRotation);
 
-	virtual void Draw(class AFociCharacter* Character);
+	virtual void DrawWeapon(class AFociCharacter* Character);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetWeaponDrawn();

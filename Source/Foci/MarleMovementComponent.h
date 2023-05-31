@@ -62,8 +62,8 @@ class FOCI_API UMarleMovementComponent : public UCharacterMovementComponent
 	float DistanceAlongLadder = 0.0f;
 
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = Tethered, Transient, meta = (AllowPrivateAccess = "true"))
-	float TetherVelocity = 200.0f;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Tethered, Transient, meta = (AllowPrivateAccess = "true"))
+	float TetherVelocity = 750.0f;
 
 
 protected:
@@ -103,9 +103,6 @@ public:
 
 	void ActivateTether(FVector Location);
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTetherLengthChanged, float, Length);
-	FOnTetherLengthChanged OnTetherLengthChanged;
-
 
 private:
 	bool IsMantling() const;
@@ -136,8 +133,6 @@ private:
 
 	void ReleaseLadder();
 
-	void SetTetherLength(float Length);
-
 	bool bMantling = false;
 
 	EClimbingSurfaceType ClimbingSurfaceType = EClimbingSurfaceType::None;
@@ -147,6 +142,4 @@ private:
 	bool bPressingIntoWall = false;
 
 	FVector TetherDestination;
-
-	float TetherLength;
 };

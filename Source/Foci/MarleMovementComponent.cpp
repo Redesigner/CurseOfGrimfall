@@ -7,6 +7,7 @@
 
 #include "Ladder.h"
 #include "FociCharacter.h"
+#include "Foci/Foci.h"
 
 FRotator UMarleMovementComponent::ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const
 {
@@ -438,16 +439,35 @@ void UMarleMovementComponent::PhysTethered(float DeltaTime, int32 Iterations)
 	const float DeltaLengthSquared = DeltaDestination.SquaredLength();
 	const float DistanceMovedThisTickSquared = DistanceMovedThisTick * DistanceMovedThisTick;
 	// If we are trying to move further than our actual separation, just use our separation as the move
-	const FVector RequestedMovement = DistanceMovedThisTickSquared > DeltaLengthSquared ? DeltaDestination : DistanceMovedThisTick * DeltaDestination.GetSafeNormal();
+	FVector RequestedMovement;
+	bool bLastMove = false;
+	if (DistanceMovedThisTickSquared > DeltaLengthSquared)
+	{
+		bLastMove = true;
+		RequestedMovement = DeltaDestination;
+	}
+	else
+	{
+		RequestedMovement = DistanceMovedThisTick * DeltaDestination.GetSafeNormal();
+	}
 	FHitResult TetherMoveHitResult;
 	SafeMoveUpdatedComponent(RequestedMovement, UpdatedComponent->GetComponentRotation(), true, TetherMoveHitResult);
-	if (TetherMoveHitResult.bBlockingHit)
+	if (TetherMoveHitResult.bBlockingHit || bLastMove)
 	{
+		// TODO: Implement more elegant solution? Currently split between the hookshot's code and here:
+		// The hookshot disables it on hit, and we re-enable it here. This isn't really safe
+		if (bLastMove)
+		{
+			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player reached destination."))
+		}
+		else
+		{
+			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player collided with object before reaching destination."))
+		}
+		Cast<AFociCharacter>(CharacterOwner)->SetInputEnabled(true);
 		SetDefaultMovementMode();
 		OnTetherBroken.Broadcast();
 	}
-	const FVector NewDifference = TetherDestination - UpdatedComponent->GetComponentLocation();
-	SetTetherLength(NewDifference.Length());
 }
 
 
@@ -467,12 +487,6 @@ void UMarleMovementComponent::ReleaseLadder()
 	LadderBase = nullptr;
 	DistanceAlongLadder = 0.0f;
 	bMantling = true;
-}
-
-void UMarleMovementComponent::SetTetherLength(float Length)
-{
-	TetherLength = Length;
-	OnTetherLengthChanged.Broadcast(Length);
 }
 
 FVector UMarleMovementComponent::GetGrabLocation() const

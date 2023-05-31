@@ -47,8 +47,9 @@ void AWeaponTool::SetThirdPerson()
 
 void AWeaponTool::AttachComponentsToSockets(USkeletalMeshComponent* ThirdPersonMesh, USkeletalMeshComponent* FirstPersonMesh, bool bStartFirstPerson, FName SocketName)
 {
-	ThirdPersonRoot->AttachToComponent(ThirdPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-	FirstPersonRoot->AttachToComponent(FirstPersonMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
+	FAttachmentTransformRules AttachmentTransformRules = FAttachmentTransformRules(EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepWorld, false);
+	ThirdPersonRoot->AttachToComponent(ThirdPersonMesh, AttachmentTransformRules, SocketName);
+	FirstPersonRoot->AttachToComponent(FirstPersonMesh, AttachmentTransformRules, NAME_None);
 	if (bStartFirstPerson)
 	{
 		SetFirstPerson();
@@ -65,7 +66,7 @@ void AWeaponTool::Fire(AFociCharacter* Character, FVector DefaultOrigin, FRotato
 	bDrawn = false;
 }
 
-void AWeaponTool::Draw(AFociCharacter* Character)
+void AWeaponTool::DrawWeapon(AFociCharacter* Character)
 {
 	bDrawn = true;
 }
