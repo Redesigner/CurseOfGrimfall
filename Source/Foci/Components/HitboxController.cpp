@@ -93,6 +93,12 @@ TWeakObjectPtr<UArmorComponent> UHitboxController::SpawnArmor(FName Name, FVecto
 	Armor->SetCollisionProfileName(ArmorCollisionProfile.Name);
 
 	Armor->RegisterComponent();
+	/*
+	* UE_LOG(LogTemp, Display, TEXT("Spawned armor hitbox for '%s' with collision profile '%s'. Responding with '%s' to objects on the armor collision channel '%s'"),
+	*	GetOwner()->GetFName().ToString(), *ArmorCollisionProfile.Name.ToString(),
+	*	UEnum::GetDisplayValueAsText<ECollisionResponse>(Armor->GetCollisionResponseToChannel(BlockCollisionChannel)).ToString(),
+	*	UEnum::GetDisplayValueAsText<ECollisionChannel>(BlockCollisionChannel).ToString() )
+	*/
 	return Armor;
 }
 
@@ -154,13 +160,16 @@ bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVe
 {
 	FHitResult ArmorTestResult;
 	FCollisionObjectQueryParams QueryParams;
-	QueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel3);
+	QueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+	FCollisionQueryParams CollisionQueryParams;
 	// const FVector StartLocation = Hitbox->GetComponentLocation();
 	const FVector StartLocation = GetOwner()->GetActorLocation();
 	const FVector EndLocation = HitLocation;
-	GetWorld()->LineTraceSingleByObjectType(ArmorTestResult, StartLocation, EndLocation, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(ArmorTestResult, StartLocation, EndLocation, BlockCollisionChannel);
+	// GetWorld()->LineTraceSingleByObjectType(ArmorTestResult, StartLocation, EndLocation, QueryParams);
 	// We hit some armor!
-	// DrawDebugDirectionalArrow(GetWorld(), StartLocation, EndLocation, 3.0f, FColor::Red, false, 2.0f);
+	// UE_LOG(LogTemp, Display, TEXT("Checking if hit blocked. Sweeping along trace channel '%s"), *UEnum::GetDisplayValueAsText<ECollisionChannel>(BlockCollisionChannel).ToString())
+	DrawDebugDirectionalArrow(GetWorld(), StartLocation, EndLocation, 3.0f, FColor::Red, false, 2.0f);
 	if (ArmorTestResult.bBlockingHit)
 	{
 		if (UArmorComponent* ArmorComponent = Cast<UArmorComponent>(ArmorTestResult.GetComponent()->GetAttachParent()))

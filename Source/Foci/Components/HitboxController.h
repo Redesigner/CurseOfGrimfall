@@ -60,6 +60,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Collision)
 	FCollisionProfileName ArmorCollisionProfile;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Collision)
+	TEnumAsByte<ECollisionChannel> BlockCollisionChannel;
+
 	UPROPERTY(BlueprintReadOnly, VisibleInstanceOnly, Category = Collision, Transient)
 	TArray<FHitResult> QueuedHits;
 

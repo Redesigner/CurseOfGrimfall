@@ -19,6 +19,7 @@ class AFociCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+	/** ===== COMPONENTS ===== **/
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -45,8 +46,13 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Health, meta = (AllowPrivateAccess = "true"))
 	class UHealthComponent* HealthComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class UStaticMeshComponent* ShieldMesh;
+	/** ===== END COMPONENTS ===== **/
+
 
 	
+	/** ===== INPUT ===== **/
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputMappingContext* DefaultMappingContext;
@@ -66,6 +72,9 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UInputAction* SecondaryAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	class UInputAction* BlockAction;
+
 
 	/** Action slots **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Slots", meta = (AllowPrivateAccess = "true"))
@@ -75,6 +84,11 @@ class AFociCharacter : public ACharacter
 	class UInputAction* Slot2Action;
 
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	bool bInputEnabled = true;
+	/** ===== END INPUT ===== **/
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
 	TArray<TSubclassOf<class AWeaponTool>> Weapons;
 
@@ -82,15 +96,24 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float AutoJumpVelocity = 10.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
-	bool bInputEnabled = true;
-
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = FirstPerson, meta = (AllowPrivateAccess = "true"))
 	bool bFirstPersonMode = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equipment, meta = (AllowPrivateAccess = "true"))
 	class AWeaponTool* CurrentWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Blocking, meta = (AllowPrivateAccess = "true"))
+	bool bBlocking = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Blocking, meta = (AllowPrivateAccess = "true"))
+	bool bShieldHeld = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Attack, meta = (AllowPrivateAccess = "true"))
+	bool bAttacking = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack|Animations", meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* AttackMontage;
 
 
 	// Don't mark this as a UPROPERTY. This is a cast ref to movementcomponent
@@ -103,6 +126,10 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Targeting, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<class AEnemy> FocusTarget;
+
+
+
+
 
 public:
 	AFociCharacter(const FObjectInitializer& ObjectInitializer);
@@ -128,6 +155,9 @@ protected:
 
 	void Secondary(const FInputActionValue& Value);
 
+	void BlockPressed(const FInputActionValue& Value);
+	void BlockReleased(const FInputActionValue& Value);
+
 	// Is there a better way to do this?
 	void Slot1Pressed(const FInputActionValue& Value);
 	void Slot1Released(const FInputActionValue& Value);
@@ -143,7 +173,7 @@ protected:
 	void ReleaseWeapon();
 
 
-	UFUNCTION(BlueprintImplementableEvent)
+	UFUNCTION()
 	void Attack();
 
 	UFUNCTION()
@@ -160,6 +190,9 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnDeath();
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 
 	// APawn interface
@@ -223,6 +256,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	UInventoryTable* GetInventory();
 
+	UFUNCTION()
+	void OnDeath_Internal();
+
 	UFUNCTION(BlueprintCallable)
 	class UHealthComponent* GetHealthComponent();
 
@@ -232,10 +268,34 @@ public:
 
 	void SetTetherLength(float Length);
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Cheats, meta = (AllowPrivateAccess = "true"))
+	bool bImmortal = false;
+
+
+	/*
+	* Returns the direction of our hand, i.e., make sure we are pointing it at the enemy if we have a target
+	*/
+	FRotator GetHandDirection() const;
+
+	/*
+	* ===== Dialog System =====
+	*/
+	UFUNCTION(BlueprintCallable)
+	void SetDialog(FDialogResponse Dialog);
+
+	void RequestDialogFromLastNpc(FDialogRequest DialogRequest);
+	/*
+	* ===== END Dialog System =====
+	*/
+
 private:
 	void EnableFirstPerson();
 
 	void DisableFirstPerson();
+
+	void RaiseShield();
+
+	void LowerShield();
 
 	// void BindViewModel();
 
@@ -247,18 +307,10 @@ private:
 
 	FVector Destination;
 
+	FRotator HandDirection;
+
 	float TetherLength;
 
-public:
-	//////////////////////////////////////
-	// Dialog System
-
-	UFUNCTION(BlueprintCallable)
-	void SetDialog(FDialogResponse Dialog);
-
-	void RequestDialogFromLastNpc(FDialogRequest DialogRequest);
-
-private:
 	FDialogResponse CurrentDialog;
 
 	TWeakObjectPtr<class UDialogComponent> LastInteractedNPC;

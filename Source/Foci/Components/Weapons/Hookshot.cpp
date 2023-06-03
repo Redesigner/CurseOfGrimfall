@@ -18,6 +18,8 @@ AHookshot::AHookshot(const FObjectInitializer& ObjectInitializer)
 
 	ChainEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Chain Effect"));
 	ChainEffect->SetupAttachment(HookshotMesh, TEXT("Hook2"));
+	ChainEffect->SetUsingAbsoluteScale(true);
+	ChainEffect->SetWorldScale3D(FVector(1.0f));
 }
 
 void AHookshot::Tick(float DeltaTime)

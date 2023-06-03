@@ -84,7 +84,12 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	ViewMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ViewMesh"));
 	ViewMesh->SetupAttachment(FirstPersonCamera);
 
+	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Shield Mesh"));
+	ShieldMesh->SetupAttachment(GetMesh(), TEXT("Handle_R"));
+	ShieldMesh->SetUsingAbsoluteScale(true);
+
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
 
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
 	DialogViewModel->SetModel(this);
@@ -323,11 +328,25 @@ UInventoryTable* AFociCharacter::GetInventory()
 	return Inventory;
 }
 
+void AFociCharacter::OnDeath_Internal()
+{
+	if (bImmortal) { return; }
+	// UGameplayStatics::SetGamePaused(GetWorld(), true);
+	MarleMovementComponent->SetMovementMode(MOVE_None);
+	SetInputEnabled(false);
+	OnDeath();
+}
+
 UHealthComponent* AFociCharacter::GetHealthComponent()
 {
 	return HealthComponent;
 }
 
+
+FRotator AFociCharacter::GetHandDirection() const
+{
+	return HandDirection;
+}
 
 void AFociCharacter::EnableFirstPerson()
 {
@@ -362,6 +381,53 @@ void AFociCharacter::DisableFirstPerson()
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->SetThirdPerson();
+	}
+}
+
+void AFociCharacter::RaiseShield()
+{
+	bBlocking = true;
+	const FVector ShieldOffset = FVector(0.0f, 70.0f, 100.0f);
+	const FVector ShieldRotator;
+	const FVector Normal = FVector(0.0f, 1.0f, 0.0f);
+	const FVector ShapeDimensions = FVector(50.0f, 70.0f, 0.0f);
+	HitboxController->SpawnArmor(TEXT("Shield"), ShieldOffset, ShieldRotator, Normal, ShapeDimensions, EArmorShape::Capsule);
+	// ShieldMesh->SetVisibility(true);
+}
+
+void AFociCharacter::LowerShield()
+{
+	// ShieldMesh->SetVisibility(false);
+	HitboxController->RemoveHitboxByName(TEXT("Shield"));
+	bBlocking = false;
+}
+
+
+void AFociCharacter::Attack()
+{
+	if (bAttacking)
+	{
+		return;
+	}
+	// Force the shield to lower, even if the button is held
+	if (bBlocking)
+	{
+		LowerShield();
+	}
+
+	bAttacking = true;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(AttackMontage);
+	AnimInstance->OnMontageEnded.AddDynamic(this, &AFociCharacter::OnAttackMontageEnded);
+}
+
+void AFociCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	bAttacking = false;
+	// If the shield is lowered, but we're holding the button, bring it back up.
+	if (bShieldHeld)
+	{
+		RaiseShield();
 	}
 }
 
@@ -415,6 +481,9 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 
 		//B-button equivalent
 		EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Started, this, &AFociCharacter::Secondary);
+
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Started, this, &AFociCharacter::BlockPressed);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Completed, this, &AFociCharacter::BlockReleased);
 
 
 		//Slot1
@@ -521,6 +590,18 @@ void AFociCharacter::Secondary(const FInputActionValue& Value)
 	Attack();
 }
 
+void AFociCharacter::BlockPressed(const FInputActionValue& Value)
+{
+	bShieldHeld = true;
+	RaiseShield();
+}
+
+void AFociCharacter::BlockReleased(const FInputActionValue& Value)
+{
+	bShieldHeld = false;
+	LowerShield();
+}
+
 void AFociCharacter::Slot1Pressed(const FInputActionValue& Value)
 {
 	SlotPressed(0);
@@ -576,9 +657,15 @@ void AFociCharacter::SlotPressed(uint8 SlotIndex)
 
 void AFociCharacter::SlotReleased(uint8 SlotIndex)
 {
-	UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
+	// UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
 	if (!bWeaponDrawn || !bWeaponReady)
 	{
+		return;
+	}
+	if (!CurrentWeapon->IsA(Weapons[SlotIndex]))
+	{
+		ReleaseWeapon();
+		ReadyWeapon(Weapons[SlotIndex]);
 		return;
 	}
 	bWeaponDrawn = false;

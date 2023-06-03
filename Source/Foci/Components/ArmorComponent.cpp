@@ -70,7 +70,7 @@ bool UArmorComponent::CanBlockHit(const FGameplayAbilitySpec* HitSpec) const
 void UArmorComponent::SetNormal(const FVector& InNormal)
 {
     Normal = InNormal;
-#if WITH_EDITOR
+    #if WITH_EDITOR
     DirectionalArrow = NewObject<UArrowComponent>(this, TEXT("Directional Arrow"));
     DirectionalArrow->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetIncludingScale);
     DirectionalArrow->SetVisibility(IsVisible());
@@ -79,7 +79,7 @@ void UArmorComponent::SetNormal(const FVector& InNormal)
     DirectionalArrow->SetRelativeRotation(Normal.ToOrientationRotator());
     DirectionalArrow->SetArrowColor(Color);
     DirectionalArrow->ArrowLength = 25.0f;
-#endif
+    #endif
 
 }
 
