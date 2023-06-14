@@ -144,6 +144,8 @@ void AFociCharacter::BeginPlay()
 	// Bind the viewmodel here, just to be safe, and refresh the health state
 	HealthComponent->OnHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::HealthChanged);
 	HealthComponent->OnMaxHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::MaxHealthChanged);
+
+	Inventory->OnInventoryItemCountChanged.AddDynamic(DialogViewModel, &UDialogViewModel::InventoryItemCountChanged);
 }
 
 bool AFociCharacter::CanJumpInternal_Implementation() const

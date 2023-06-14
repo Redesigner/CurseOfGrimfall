@@ -28,4 +28,7 @@ public:
 	void UnlockItem(FName ItemName, uint8 MaxItemCount);
 
 	bool SetInventoryCapacity(FName ItemName, uint8 NewMax, bool bForceInventoryShrink = false);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnInventoryItemCountChanged, FName, ItemName, uint8, ItemCount);
+	FOnInventoryItemCountChanged OnInventoryItemCountChanged;
 };

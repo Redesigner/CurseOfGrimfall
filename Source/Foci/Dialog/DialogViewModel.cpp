@@ -6,12 +6,14 @@
 #include "Foci/FociCharacter.h"
 #include "Foci/Foci.h"
 #include "Foci/Dialog/DialogWidget.h"
+#include "Foci/Inventory/InventoryTable.h"
 #include "Foci/Components/HealthComponent.h"
 
 void UDialogViewModel::SetModel(AFociCharacter* Character)
 {
 	Model = Character;
-	UE_LOG(LogTemp, Display, TEXT("Manually updating player health."))
+
+	// Force updates on our widgets
 	OnHealthUpdated.Broadcast(Character->GetHealthComponent()->GetCurrentHealth(), Character->GetHealthComponent()->GetMaxHealth());
 }
 
@@ -51,6 +53,15 @@ void UDialogViewModel::MaxHealthChanged(float NewMaxHealth)
 {
 	MaxHealth = NewMaxHealth;
 	OnHealthUpdated.Broadcast(Health, NewMaxHealth);
+}
+
+void UDialogViewModel::InventoryItemCountChanged(FName ItemName, uint8 ItemCount)
+{
+	if (ItemName == TEXT("Gems"))
+	{
+		OnGemsUpdated.Broadcast(ItemCount);
+		return;
+	}
 }
 
 float UDialogViewModel::GetHealth() const

@@ -13,9 +13,11 @@ bool UInventoryTable::GiveItem(FName ItemName, uint8 ItemCount)
 	if (Item->ItemCount + ItemCount > Item->MaxItemCount)
 	{
 		Item->ItemCount = Item->MaxItemCount;
+		OnInventoryItemCountChanged.Broadcast(ItemName, Item->ItemCount);
 		return false;
 	}
 	Item->ItemCount += ItemCount;
+	OnInventoryItemCountChanged.Broadcast(ItemName, Item->ItemCount);
 	return true;
 }
 
@@ -32,6 +34,7 @@ bool UInventoryTable::ConsumeItem(FName ItemName, uint8 ItemCount)
 		return false;
 	}
 	Item->ItemCount -= ItemCount;
+	OnInventoryItemCountChanged.Broadcast(ItemName, Item->ItemCount);
 	return true;
 }
 

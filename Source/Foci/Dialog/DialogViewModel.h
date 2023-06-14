@@ -49,6 +49,12 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthUpdated OnHealthUpdated;
 
+	UFUNCTION()
+	void InventoryItemCountChanged(FName ItemName, uint8 ItemCount);
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGemsUpdated, uint8, GemCount);
+	FOnGemsUpdated OnGemsUpdated;
+
 	float GetHealth() const;
 	
 	float GetMaxHealth() const;
