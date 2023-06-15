@@ -151,7 +151,8 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
-	void Primary(const FInputActionValue& Value);
+	void PrimaryPressed(const FInputActionValue& Value);
+	void PrimaryReleased(const FInputActionValue& Value);
 
 	void Secondary(const FInputActionValue& Value);
 

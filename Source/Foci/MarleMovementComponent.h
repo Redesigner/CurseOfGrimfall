@@ -53,7 +53,7 @@ class FOCI_API UMarleMovementComponent : public UCharacterMovementComponent
 	float LedgeClimbRequiredHoldTime = 0.5f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Climbing|Ladder", Transient, meta = (AllowPrivateAccess = "true"))
-	float ClimbingVelocity = 0.0f;
+	float InputVelocity = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Climbing|Ladder", Transient, meta = (AllowPrivateAccess = "true"))
 	TWeakObjectPtr<class ALadder> LadderBase;
@@ -94,7 +94,7 @@ public:
 
 	void GrabLadder(class ALadder* Ladder);
 
-	bool UseDirectInput() const;
+	bool UsingDirectInput() const;
 
 	EClimbingSurfaceType GetClimbingSurfaceType() const;
 
@@ -102,6 +102,10 @@ public:
 	FOnTetherBroken OnTetherBroken;
 
 	void ActivateTether(FVector Location);
+
+	void GrabBlock(AActor* Block);
+
+	void ReleaseBlock();
 
 
 private:
@@ -119,6 +123,8 @@ private:
 
 	void ClimbLadder(FVector InputVector, float DeltaTime);
 
+	void MoveBlock(FVector InputVector, float DeltaTime);
+
 
 	void PhysClimbing(float DeltaTime, int32 Iterations);
 
@@ -128,6 +134,8 @@ private:
 
 	// Pull the player to the object
 	void PhysTethered(float DeltaTime, int32 Iterations);
+
+	void PhysPulling(float DeltaTime, int32 Iterations);
 
 	void ReleaseLedge();
 
@@ -142,4 +150,6 @@ private:
 	bool bPressingIntoWall = false;
 
 	FVector TetherDestination;
+
+	TWeakObjectPtr<UPrimitiveComponent> GrabbedBlock;
 };

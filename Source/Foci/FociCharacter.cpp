@@ -271,6 +271,12 @@ void AFociCharacter::Interact()
 		if (IInteractableInterface* Interactable = Cast<IInteractableInterface>(Actor))
 		{
 			Interactable->Interact(this);
+			continue;
+		}
+		if (Actor->ActorHasTag(TEXT("Grabbable")))
+		{
+			MarleMovementComponent->GrabBlock(Actor);
+			continue;
 		}
 	}
 	if (!bFoundTarget)
@@ -278,7 +284,7 @@ void AFociCharacter::Interact()
 		ClearFocusTarget();
 	}
 }
-
+///////////////////////////////////////////////////////////////////////////
 
 
 
@@ -479,7 +485,8 @@ void AFociCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFociCharacter::Look);
 
 		//A-button equivalent
-		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Started, this, &AFociCharacter::Primary);
+		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Started, this, &AFociCharacter::PrimaryPressed);
+		EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Completed, this, &AFociCharacter::PrimaryReleased);
 
 		//B-button equivalent
 		EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Started, this, &AFociCharacter::Secondary);
@@ -515,7 +522,7 @@ void AFociCharacter::Move(const FInputActionValue& Value)
 	}
 
 	FVector2D MovementVector = Value.Get<FVector2D>();
-	if (MarleMovementComponent && MarleMovementComponent->UseDirectInput())
+	if (MarleMovementComponent && MarleMovementComponent->UsingDirectInput())
 	{
 		AddMovementInput(FVector::ForwardVector, MovementVector.Y);
 		AddMovementInput(FVector::RightVector, MovementVector.X);
@@ -555,7 +562,7 @@ void AFociCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void AFociCharacter::Primary(const FInputActionValue& Value)
+void AFociCharacter::PrimaryPressed(const FInputActionValue& Value)
 {
 	if (!bInputEnabled)
 	{
@@ -568,6 +575,15 @@ void AFociCharacter::Primary(const FInputActionValue& Value)
 	}
 	Interact();
 }
+
+void AFociCharacter::PrimaryReleased(const FInputActionValue& Value)
+{
+	if (MarleMovementComponent->MovementMode == EMovementMode::MOVE_Custom && MarleMovementComponent->CustomMovementMode == 2)
+	{
+		MarleMovementComponent->ReleaseBlock();
+	}
+}
+
 
 void AFociCharacter::Secondary(const FInputActionValue& Value)
 {
@@ -710,16 +726,16 @@ void AFociCharacter::FireWeapon()
 }
 
 
+float AFociCharacter::GetTetherLength() const
+{
+	return TetherLength;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Dialog
 const FDialogResponse& AFociCharacter::GetDialog() const
 {
 	return CurrentDialog;
-}
-
-float AFociCharacter::GetTetherLength() const
-{
-	return TetherLength;
 }
 
 void AFociCharacter::SetDialog(FDialogResponse Dialog)

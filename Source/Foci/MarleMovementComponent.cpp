@@ -37,6 +37,8 @@ bool UMarleMovementComponent::MoveUpdatedComponentImpl(const FVector& Delta, con
 	return bResult;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////
+// Phys Movement
 void UMarleMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 {
 	Super::PhysCustom(DeltaTime, Iterations);
@@ -49,6 +51,10 @@ void UMarleMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 		case 1:
 			PhysTethered(DeltaTime, Iterations);
+			break;
+
+		case 2:
+			PhysPulling(DeltaTime, Iterations);
 			break;
 
 		default: break;
@@ -94,6 +100,153 @@ void UMarleMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 	}
 }
 
+void UMarleMovementComponent::PhysClimbing(float DeltaTime, int32 Iterations)
+{
+	switch (ClimbingSurfaceType)
+	{
+	case EClimbingSurfaceType::Ledge:
+		PhysMantling(DeltaTime, Iterations);
+		break;
+	case EClimbingSurfaceType::Ladder:
+		PhysLadder(DeltaTime, Iterations);
+		break;
+	default:
+		UE_LOG(LogTemp, Display, TEXT("Climbing, but current climbing surface type is not supported"))
+	}
+}
+
+void UMarleMovementComponent::PhysLadder(float DeltaTime, int32 Iterations)
+{
+	if (IsMantling())
+	{
+		PhysMantling(DeltaTime, Iterations);
+		return;
+	}
+	const FVector NewLocation = GetGrabLocation() + LadderBase->GetActorUpVector() * DeltaTime * InputVelocity * 200.0f;
+	DistanceAlongLadder = LadderBase->GetGrabDistance(NewLocation);
+	ClimbSnapLocation = LadderBase->GetGrabLocation(DistanceAlongLadder) - UpdatedComponent->GetComponentRotation().RotateVector(ClimbOffset);
+	FHitResult HitResult;
+	UpdatedComponent->SetWorldLocation(ClimbSnapLocation, true, &HitResult);
+	if (HitResult.bBlockingHit && InputVelocity < 0.0f)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Hit obstacle while climbing."))
+			ReleaseLedge();
+		return;
+	}
+	if (LadderBase->IsTop(DistanceAlongLadder) && InputVelocity > 0.0f)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Reached end of ladder"))
+			ReleaseLadder();
+
+		ACharacter* Owner = CharacterOwner.Get();
+		AFociCharacter* FociCharacter = Cast<AFociCharacter>(Owner);
+		FociCharacter->Mantle(ClimbSnapLocation);
+		return;
+	}
+	if (LadderBase->IsBottom(DistanceAlongLadder) && InputVelocity < 0.0f)
+	{
+		ReleaseLadder();
+		return;
+	}
+}
+
+void UMarleMovementComponent::PhysMantling(float DeltaTime, int32 Iterations)
+{
+	if (bMantling)
+	{
+		ApplyRootMotionToVelocity(DeltaTime);
+		MoveUpdatedComponent(Velocity * DeltaTime, UpdatedComponent->GetComponentRotation(), false);
+		return;
+	}
+	//FVector DeltaLocation = GetLedgeMovement(DeltaTime);
+	FVector DeltaLocation = ClimbSnapLocation - UpdatedComponent->GetComponentLocation();
+	if (DeltaLocation.SizeSquared() > FMath::Square(MantleSpeed * DeltaTime))
+	{
+		DeltaLocation.Normalize();
+		DeltaLocation *= MantleSpeed * DeltaTime;
+	}
+	FHitResult HitResult;
+	SafeMoveUpdatedComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), false, HitResult);
+}
+
+// Move along the tether, but break if we hit something
+void UMarleMovementComponent::PhysTethered(float DeltaTime, int32 Iterations)
+{
+	const FVector DeltaDestination = TetherDestination - UpdatedComponent->GetComponentLocation();
+	float DistanceMovedThisTick = TetherVelocity * DeltaTime;
+
+	const float DeltaLengthSquared = DeltaDestination.SquaredLength();
+	const float DistanceMovedThisTickSquared = DistanceMovedThisTick * DistanceMovedThisTick;
+	// If we are trying to move further than our actual separation, just use our separation as the move
+	FVector RequestedMovement;
+	bool bLastMove = false;
+	if (DistanceMovedThisTickSquared > DeltaLengthSquared)
+	{
+		bLastMove = true;
+		RequestedMovement = DeltaDestination;
+	}
+	else
+	{
+		RequestedMovement = DistanceMovedThisTick * DeltaDestination.GetSafeNormal();
+	}
+	FHitResult TetherMoveHitResult;
+	SafeMoveUpdatedComponent(RequestedMovement, UpdatedComponent->GetComponentRotation(), true, TetherMoveHitResult);
+	if (TetherMoveHitResult.bBlockingHit || bLastMove)
+	{
+		// TODO: Implement more elegant solution? Currently split between the hookshot's code and here:
+		// The hookshot disables it on hit, and we re-enable it here. This isn't really safe
+		if (bLastMove)
+		{
+			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player reached destination."))
+		}
+		else
+		{
+			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player collided with object before reaching destination."))
+		}
+		Cast<AFociCharacter>(CharacterOwner)->SetInputEnabled(true);
+		SetDefaultMovementMode();
+		OnTetherBroken.Broadcast();
+	}
+}
+
+void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
+{
+	if (InputVelocity == 0.0f)
+	{
+		return;
+	}
+	if (!GrabbedBlock.IsValid())
+	{
+		return;
+	}
+	const float RelativeVelocity = InputVelocity * DeltaTime * 100.0f;
+	// TODO: Use rootmotion here instead?
+	const FVector InitialMovement = PawnOwner->GetActorForwardVector() * RelativeVelocity;
+
+	// We're pushing forward, so the block is going to move before the character.
+	if (InputVelocity > 0.0f)
+	{
+		FHitResult PushHitResult;
+		const FVector BlockInitialLocation = GrabbedBlock->GetComponentLocation();
+		GrabbedBlock->MoveComponent(InitialMovement, GrabbedBlock->GetComponentRotation(), true, &PushHitResult);
+		const FVector BlockDelta = GrabbedBlock->GetComponentLocation() - BlockInitialLocation;
+
+		FHitResult PushHitResult2;
+		SafeMoveUpdatedComponent(BlockDelta, UpdatedComponent->GetComponentRotation(), false, PushHitResult2);
+		return;
+	}
+
+	// We're pulling the block instead, so move the character first
+	FHitResult PullHitResult;
+	const FVector PlayerInitialLocation = UpdatedComponent->GetComponentLocation();
+	SafeMoveUpdatedComponent(InitialMovement, UpdatedComponent->GetComponentRotation(), true, PullHitResult);
+
+	const FVector CharacterDelta = UpdatedComponent->GetComponentLocation() - PlayerInitialLocation;
+	GrabbedBlock->MoveComponent(CharacterDelta, GrabbedBlock->GetComponentRotation(), false);
+}
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
 void UMarleMovementComponent::PerformMovement(float DeltaTime)
 {
 	Super::PerformMovement(DeltaTime);
@@ -102,11 +255,21 @@ void UMarleMovementComponent::PerformMovement(float DeltaTime)
 void UMarleMovementComponent::ControlledCharacterMove(const FVector& InputVector, float DeltaSeconds)
 {
 	// Controlled Character Move clears the inputvector, so we capture it here for our purposes
-	if (MovementMode == EMovementMode::MOVE_Custom && CustomMovementMode == 0)
+	if (MovementMode == EMovementMode::MOVE_Custom)
 	{
-		if (ClimbingSurfaceType == EClimbingSurfaceType::Ladder)
+		// MovementMode Climbing
+		if (CustomMovementMode == 0)
 		{
-			ClimbLadder(InputVector.GetSafeNormal(), DeltaSeconds);
+			if (ClimbingSurfaceType == EClimbingSurfaceType::Ladder)
+			{
+				ClimbLadder(InputVector.GetSafeNormal(), DeltaSeconds);
+			}
+		}
+
+		// MovementMode Pulling
+		if (CustomMovementMode == 2)
+		{
+			MoveBlock(InputVector.GetSafeNormal(), DeltaSeconds);
 		}
 	}
 	Super::ControlledCharacterMove(InputVector, DeltaSeconds);
@@ -277,6 +440,58 @@ void UMarleMovementComponent::ActivateTether(FVector Location)
 	TetherDestination = Location;
 }
 
+void UMarleMovementComponent::GrabBlock(AActor* Block)
+{
+	// Please note, the "Block" is just terminology. It doesn't have to be a box shape.
+	UPrimitiveComponent* BlockComponent = Cast<UPrimitiveComponent>(Block->GetRootComponent());
+	if (!BlockComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Player attempted to grab a block object '%s', but the root component was not of a type derived from UPrimitiveComponent."), *Block->GetFName().ToString())
+		return;
+	}	
+	// Do a line trace to find the surface normal of our block
+	FHitResult GrabNormalSweepResult;
+	const FVector SweepStart = PawnOwner->GetActorLocation();
+	const FVector SweepEnd = SweepStart + PawnOwner->GetActorForwardVector() * 100.0f;
+	FCollisionQueryParams CollisionQueryParams;
+
+	BlockComponent->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
+	DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.TraceStart, GrabNormalSweepResult.TraceEnd, 5.0f, FColor::Red, false, 5.0f);
+	DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.ImpactPoint, GrabNormalSweepResult.ImpactPoint + GrabNormalSweepResult.ImpactNormal * 50.0f, 5.0f, FColor::Blue, false, 5.0f);
+
+	// This type of line trace doesn't work with bBlockingHit, so this is the simplest way to determine if we've hit the block or not.
+	if (GrabNormalSweepResult.Time >= 1.0f)
+	{
+		return;
+	}
+
+	SetMovementMode(EMovementMode::MOVE_Custom, 2);
+
+	bOrientRotationToMovement = false;
+	bUseControllerDesiredRotation = false;
+
+	const FVector Normal2D = GrabNormalSweepResult.ImpactNormal.GetSafeNormal2D();
+	const float RotationYaw = FMath::RadiansToDegrees(FMath::Atan2(-Normal2D.Y, -Normal2D.X));
+	FRotator PawnRotation = PawnOwner->GetActorRotation();
+	PawnRotation.Yaw = RotationYaw;
+	PawnOwner->SetActorRotation(PawnRotation);
+
+	GrabbedBlock = BlockComponent;
+
+	// Move the character into the block, and let the sweep take care of it
+	MoveUpdatedComponent(Normal2D * -50.0f, UpdatedComponent->GetComponentRotation(), true);
+}
+
+void UMarleMovementComponent::ReleaseBlock()
+{
+	GrabbedBlock = nullptr;
+
+	bOrientRotationToMovement = true;
+	bUseControllerDesiredRotation = true;
+
+	SetDefaultMovementMode();
+}
+
 
 void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 {
@@ -293,7 +508,7 @@ void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 	UpdatedComponent->SetWorldLocation(ClimbSnapLocation);
 }
 
-bool UMarleMovementComponent::UseDirectInput() const
+bool UMarleMovementComponent::UsingDirectInput() const
 {
 	return MovementMode == EMovementMode::MOVE_Custom;
 }
@@ -358,118 +573,14 @@ void UMarleMovementComponent::ClimbLedge()
 void UMarleMovementComponent::ClimbLadder(FVector InputVector, float DeltaTime)
 {
 	// The input is in 3D space -- X is forward in Unreal
-	ClimbingVelocity = InputVector.X;
+	InputVelocity = InputVector.X;
 }
 
-void UMarleMovementComponent::PhysClimbing(float DeltaTime, int32 Iterations)
+void UMarleMovementComponent::MoveBlock(FVector InputVector, float DeltaTime)
 {
-	switch (ClimbingSurfaceType)
-	{
-	case EClimbingSurfaceType::Ledge:
-		PhysMantling(DeltaTime, Iterations);
-		break;
-	case EClimbingSurfaceType::Ladder:
-		PhysLadder(DeltaTime, Iterations);
-		break;
-	default:
-		UE_LOG(LogTemp, Display, TEXT("Climbing, but current climbing surface type is not supported"))
-	}
+	// This is probably going to end up being different than the ClimbLadder function, so I'll leave it as a separate implementation
+	InputVelocity = InputVector.X;
 }
-
-void UMarleMovementComponent::PhysLadder(float DeltaTime, int32 Iterations)
-{
-	if (IsMantling())
-	{
-		PhysMantling(DeltaTime, Iterations);
-		return;
-	}
-	const FVector NewLocation = GetGrabLocation() + LadderBase->GetActorUpVector() * DeltaTime * ClimbingVelocity * 200.0f;
-	DistanceAlongLadder = LadderBase->GetGrabDistance(NewLocation);
-	ClimbSnapLocation = LadderBase->GetGrabLocation(DistanceAlongLadder) - UpdatedComponent->GetComponentRotation().RotateVector(ClimbOffset);
-	FHitResult HitResult;
-	UpdatedComponent->SetWorldLocation(ClimbSnapLocation, true, &HitResult);
-	if (HitResult.bBlockingHit && ClimbingVelocity < 0.0f)
-	{
-		UE_LOG(LogTemp, Display, TEXT("Hit obstacle while climbing."))
-		ReleaseLedge();
-		return;
-	}
-	if (LadderBase->IsTop(DistanceAlongLadder) && ClimbingVelocity > 0.0f)
-	{
-		UE_LOG(LogTemp, Display, TEXT("Reached end of ladder"))
-		ReleaseLadder();
-
-		ACharacter* Owner = CharacterOwner.Get();
-		AFociCharacter* FociCharacter = Cast<AFociCharacter>(Owner);
-		FociCharacter->Mantle(ClimbSnapLocation);
-		return;
-	}
-	if (LadderBase->IsBottom(DistanceAlongLadder) && ClimbingVelocity < 0.0f)
-	{
-		ReleaseLadder();
-		return;
-	}
-}
-
-void UMarleMovementComponent::PhysMantling(float DeltaTime, int32 Iterations)
-{
-	if (bMantling)
-	{
-		ApplyRootMotionToVelocity(DeltaTime);
-		MoveUpdatedComponent(Velocity * DeltaTime, UpdatedComponent->GetComponentRotation(), false);
-		return;
-	}
-	//FVector DeltaLocation = GetLedgeMovement(DeltaTime);
-	FVector DeltaLocation = ClimbSnapLocation - UpdatedComponent->GetComponentLocation();
-	if (DeltaLocation.SizeSquared() > FMath::Square(MantleSpeed * DeltaTime))
-	{
-		DeltaLocation.Normalize();
-		DeltaLocation *= MantleSpeed * DeltaTime;
-	}
-	FHitResult HitResult;
-	SafeMoveUpdatedComponent(DeltaLocation, UpdatedComponent->GetComponentRotation(), false, HitResult);
-}
-
-// Move along the tether, but break if we hit something
-void UMarleMovementComponent::PhysTethered(float DeltaTime, int32 Iterations)
-{
-	const FVector DeltaDestination = TetherDestination - UpdatedComponent->GetComponentLocation();
-	float DistanceMovedThisTick = TetherVelocity * DeltaTime;
-
-	const float DeltaLengthSquared = DeltaDestination.SquaredLength();
-	const float DistanceMovedThisTickSquared = DistanceMovedThisTick * DistanceMovedThisTick;
-	// If we are trying to move further than our actual separation, just use our separation as the move
-	FVector RequestedMovement;
-	bool bLastMove = false;
-	if (DistanceMovedThisTickSquared > DeltaLengthSquared)
-	{
-		bLastMove = true;
-		RequestedMovement = DeltaDestination;
-	}
-	else
-	{
-		RequestedMovement = DistanceMovedThisTick * DeltaDestination.GetSafeNormal();
-	}
-	FHitResult TetherMoveHitResult;
-	SafeMoveUpdatedComponent(RequestedMovement, UpdatedComponent->GetComponentRotation(), true, TetherMoveHitResult);
-	if (TetherMoveHitResult.bBlockingHit || bLastMove)
-	{
-		// TODO: Implement more elegant solution? Currently split between the hookshot's code and here:
-		// The hookshot disables it on hit, and we re-enable it here. This isn't really safe
-		if (bLastMove)
-		{
-			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player reached destination."))
-		}
-		else
-		{
-			UE_LOG(LogWeaponSystem, Display, TEXT("Hookshot tether broken, player collided with object before reaching destination."))
-		}
-		Cast<AFociCharacter>(CharacterOwner)->SetInputEnabled(true);
-		SetDefaultMovementMode();
-		OnTetherBroken.Broadcast();
-	}
-}
-
 
 void UMarleMovementComponent::ReleaseLedge()
 { 
