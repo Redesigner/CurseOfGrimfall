@@ -107,6 +107,8 @@ public:
 
 	void ReleaseBlock();
 
+	float GetInputVelocity() const;
+
 
 private:
 	bool IsMantling() const;

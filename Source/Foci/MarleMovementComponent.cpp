@@ -219,9 +219,11 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
-	const float RelativeVelocity = InputVelocity * DeltaTime * 100.0f;
+	ApplyRootMotionToVelocity(DeltaTime);
+
+	// const float RelativeVelocity = InputVelocity * DeltaTime * 100.0f;
 	// TODO: Use rootmotion here instead?
-	const FVector InitialMovement = PawnOwner->GetActorForwardVector() * RelativeVelocity;
+	const FVector InitialMovement = Velocity * DeltaTime;
 
 	// We're pushing forward, so the block is going to move before the character.
 	if (InputVelocity > 0.0f)
@@ -456,8 +458,8 @@ void UMarleMovementComponent::GrabBlock(AActor* Block)
 	FCollisionQueryParams CollisionQueryParams;
 
 	BlockComponent->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
-	DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.TraceStart, GrabNormalSweepResult.TraceEnd, 5.0f, FColor::Red, false, 5.0f);
-	DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.ImpactPoint, GrabNormalSweepResult.ImpactPoint + GrabNormalSweepResult.ImpactNormal * 50.0f, 5.0f, FColor::Blue, false, 5.0f);
+	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.TraceStart, GrabNormalSweepResult.TraceEnd, 5.0f, FColor::Red, false, 5.0f);
+	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.ImpactPoint, GrabNormalSweepResult.ImpactPoint + GrabNormalSweepResult.ImpactNormal * 50.0f, 5.0f, FColor::Blue, false, 5.0f);
 
 	// This type of line trace doesn't work with bBlockingHit, so this is the simplest way to determine if we've hit the block or not.
 	if (GrabNormalSweepResult.Time >= 1.0f)
@@ -492,10 +494,14 @@ void UMarleMovementComponent::ReleaseBlock()
 	SetDefaultMovementMode();
 }
 
+float UMarleMovementComponent::GetInputVelocity() const
+{
+	return InputVelocity;
+}
+
 
 void UMarleMovementComponent::GrabLadder(ALadder* Ladder)
 {
-	UE_LOG(LogTemp, Display, TEXT("Grabbed Ladder"))
 	SetMovementMode(EMovementMode::MOVE_Custom, 0);
 	ClimbingSurfaceType = EClimbingSurfaceType::Ladder;
 	LadderBase = Ladder;
