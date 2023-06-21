@@ -103,7 +103,7 @@ public:
 
 	void ActivateTether(FVector Location);
 
-	void GrabBlock(AActor* Block);
+	void GrabBlock(class APushableBlock* Block);
 
 	void ReleaseBlock();
 
@@ -153,5 +153,5 @@ private:
 
 	FVector TetherDestination;
 
-	TWeakObjectPtr<UPrimitiveComponent> GrabbedBlock;
+	TWeakObjectPtr<class APushableBlock> GrabbedBlock;
 };

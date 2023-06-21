@@ -29,3 +29,8 @@ void AFloorButton::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, 
 		Trigger(OtherActor);
 	}
 }
+
+UBoxComponent* AFloorButton::GetSurface() const
+{
+	return Box;
+}

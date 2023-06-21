@@ -4,10 +4,12 @@
 
 #include "GameFramework/Character.h"
 #include "VisualLogger/VisualLogger.h"
+#include "Components/BoxComponent.h"
 
 #include "Ladder.h"
 #include "FociCharacter.h"
 #include "Foci/Foci.h"
+#include "Foci/Actors/Objects/PushableBlock.h"
 
 FRotator UMarleMovementComponent::ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const
 {
@@ -229,9 +231,9 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	if (InputVelocity > 0.0f)
 	{
 		FHitResult PushHitResult;
-		const FVector BlockInitialLocation = GrabbedBlock->GetComponentLocation();
-		GrabbedBlock->MoveComponent(InitialMovement, GrabbedBlock->GetComponentRotation(), true, &PushHitResult);
-		const FVector BlockDelta = GrabbedBlock->GetComponentLocation() - BlockInitialLocation;
+		const FVector BlockInitialLocation = GrabbedBlock->GetActorLocation();
+		GrabbedBlock->Push(InitialMovement, PawnOwner, PushHitResult);
+		const FVector BlockDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
 
 		FHitResult PushHitResult2;
 		SafeMoveUpdatedComponent(BlockDelta, UpdatedComponent->GetComponentRotation(), false, PushHitResult2);
@@ -244,7 +246,8 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	SafeMoveUpdatedComponent(InitialMovement, UpdatedComponent->GetComponentRotation(), true, PullHitResult);
 
 	const FVector CharacterDelta = UpdatedComponent->GetComponentLocation() - PlayerInitialLocation;
-	GrabbedBlock->MoveComponent(CharacterDelta, GrabbedBlock->GetComponentRotation(), false);
+	FHitResult PushHitResult;
+	GrabbedBlock->Push(CharacterDelta, PawnOwner, PushHitResult);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -442,22 +445,16 @@ void UMarleMovementComponent::ActivateTether(FVector Location)
 	TetherDestination = Location;
 }
 
-void UMarleMovementComponent::GrabBlock(AActor* Block)
+void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 {
 	// Please note, the "Block" is just terminology. It doesn't have to be a box shape.
-	UPrimitiveComponent* BlockComponent = Cast<UPrimitiveComponent>(Block->GetRootComponent());
-	if (!BlockComponent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Player attempted to grab a block object '%s', but the root component was not of a type derived from UPrimitiveComponent."), *Block->GetFName().ToString())
-		return;
-	}	
 	// Do a line trace to find the surface normal of our block
 	FHitResult GrabNormalSweepResult;
 	const FVector SweepStart = PawnOwner->GetActorLocation();
 	const FVector SweepEnd = SweepStart + PawnOwner->GetActorForwardVector() * 100.0f;
 	FCollisionQueryParams CollisionQueryParams;
 
-	BlockComponent->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
+	Block->GetBlockComponent()->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
 	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.TraceStart, GrabNormalSweepResult.TraceEnd, 5.0f, FColor::Red, false, 5.0f);
 	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.ImpactPoint, GrabNormalSweepResult.ImpactPoint + GrabNormalSweepResult.ImpactNormal * 50.0f, 5.0f, FColor::Blue, false, 5.0f);
 
@@ -478,7 +475,7 @@ void UMarleMovementComponent::GrabBlock(AActor* Block)
 	PawnRotation.Yaw = RotationYaw;
 	PawnOwner->SetActorRotation(PawnRotation);
 
-	GrabbedBlock = BlockComponent;
+	GrabbedBlock = Block;
 
 	// Move the character into the block, and let the sweep take care of it
 	MoveUpdatedComponent(Normal2D * -50.0f, UpdatedComponent->GetComponentRotation(), true);

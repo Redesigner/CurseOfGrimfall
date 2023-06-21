@@ -298,6 +298,8 @@ private:
 
 	void LowerShield();
 
+	bool CanAttack() const;
+
 	// void BindViewModel();
 
 	bool bMovingToLocation = false;
@@ -305,6 +307,7 @@ private:
 	bool bWeaponDrawn = false;
 
 	bool bWeaponReady = false;
+
 
 	FVector Destination;
 

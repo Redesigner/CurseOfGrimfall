@@ -23,6 +23,7 @@
 #include "Ladder.h"
 #include "Foci/Actors/Interactable.h"
 #include "Foci/Actors/Enemy.h"
+#include "Foci/Actors/Objects/PushableBlock.h"
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
@@ -273,9 +274,9 @@ void AFociCharacter::Interact()
 			Interactable->Interact(this);
 			continue;
 		}
-		if (Actor->ActorHasTag(TEXT("Grabbable")))
+		if (APushableBlock* Block = Cast<APushableBlock>(Actor))
 		{
-			MarleMovementComponent->GrabBlock(Actor);
+			MarleMovementComponent->GrabBlock(Block);
 			continue;
 		}
 	}
@@ -410,10 +411,15 @@ void AFociCharacter::LowerShield()
 	bBlocking = false;
 }
 
+bool AFociCharacter::CanAttack() const
+{
+	return !bAttacking && MarleMovementComponent->MovementMode == EMovementMode::MOVE_Walking;
+}
+
 
 void AFociCharacter::Attack()
 {
-	if (bAttacking)
+	if (!CanAttack())
 	{
 		return;
 	}
