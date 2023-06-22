@@ -31,4 +31,6 @@ private:
 	bool SnapToFloor();
 
 	bool SnapToButton(class AFloorButton* FloorButton, FVector Delta);
+
+	TWeakObjectPtr<AActor> LastGrabber;
 };

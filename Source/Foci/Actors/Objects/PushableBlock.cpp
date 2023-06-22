@@ -30,6 +30,10 @@ void APushableBlock::Tick(float DeltaTime)
 	const FVector EndLocation = StartLocation + Delta;
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
+	if (LastGrabber.IsValid())
+	{
+		CollisionQueryParams.AddIgnoredActor(LastGrabber.Get());
+	}
 
 	GetWorld()->SweepSingleByProfile(MoveHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
 
@@ -39,11 +43,11 @@ void APushableBlock::Tick(float DeltaTime)
 		return;
 	}
 	AddActorWorldOffset(Delta);
-	
 }
 
 void APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 {
+	LastGrabber = Source;
 	const FVector StartLocation = Box->GetComponentLocation();
 	const FVector EndLocation = StartLocation + Delta;
 	FCollisionQueryParams CollisionQueryParams;
@@ -62,7 +66,8 @@ void APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 		}
 		else
 		{
-			AddActorWorldOffset(HitResult.Location - StartLocation);
+			const FVector Delta = HitResult.Location - StartLocation;
+			AddActorWorldOffset(Delta - Delta.GetSafeNormal());
 		}
 	}
 	else
@@ -85,6 +90,10 @@ bool APushableBlock::SnapToFloor()
 	const FVector EndLocation = StartLocation - FVector(0.0f, 0.0f, SnapHeight);
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
+	if (LastGrabber.IsValid())
+	{
+		CollisionQueryParams.AddIgnoredActor(LastGrabber.Get());
+	}
 
 	GetWorld()->SweepSingleByProfile(FloorHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
 	
@@ -115,13 +124,18 @@ bool APushableBlock::SnapToButton(AFloorButton* FloorButton, FVector Delta)
 
 	ButtonSurface->SweepComponent(ButtonSnapResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionShape(1.0f));
 
+	DrawDebugDirectionalArrow(GetWorld(), StartLocation, ButtonSnapResult.Location, 5.0f, FColor::Red, false, 5.0f, -1);
+	DrawDebugDirectionalArrow(GetWorld(), EndLocation, ButtonSnapResult.Location, 5.0f, FColor::Blue, false, 5.0f, -1);
+
 	if (ButtonSnapResult.bBlockingHit)
 	{
-		AddActorWorldOffset(ButtonSnapResult.Location - Box->GetComponentLocation());
+		// AddActorWorldOffset(ButtonSnapResult.Location - Box->GetComponentLocation());
+		Box->SetWorldLocation(ButtonSnapResult.Location);
 		return true;
 	}
 
 	// The sweep failed! This can sometimes happen, so just move the block here
-	AddActorWorldOffset(Delta);
+	// AddActorWorldOffset(Delta);
+	Box->SetWorldLocation(ButtonSnapResult.Location);
 	return false;
 }

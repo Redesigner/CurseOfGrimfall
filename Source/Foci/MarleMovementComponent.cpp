@@ -233,7 +233,8 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 		FHitResult PushHitResult;
 		const FVector BlockInitialLocation = GrabbedBlock->GetActorLocation();
 		GrabbedBlock->Push(InitialMovement, PawnOwner, PushHitResult);
-		const FVector BlockDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
+		FVector BlockDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
+		BlockDelta.Z = 0.0f;
 
 		FHitResult PushHitResult2;
 		SafeMoveUpdatedComponent(BlockDelta, UpdatedComponent->GetComponentRotation(), false, PushHitResult2);
