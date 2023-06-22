@@ -23,7 +23,8 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	void Push(FVector Delta, AActor* Source, FHitResult& HitResult);
+	// Returns false if the Push caused the block to break the connection
+	bool Push(FVector Delta, AActor* Source, FHitResult& HitResult);
 
 	class UBoxComponent* GetBlockComponent() const;
 
@@ -32,5 +33,5 @@ private:
 
 	bool SnapToButton(class AFloorButton* FloorButton, FVector Delta);
 
-	TWeakObjectPtr<AActor> LastGrabber;
+	TWeakObjectPtr<AActor> LastUser;
 };

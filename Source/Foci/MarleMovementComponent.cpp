@@ -232,23 +232,45 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	{
 		FHitResult PushHitResult;
 		const FVector BlockInitialLocation = GrabbedBlock->GetActorLocation();
-		GrabbedBlock->Push(InitialMovement, PawnOwner, PushHitResult);
+		const bool bContinuePushing = GrabbedBlock->Push(InitialMovement, PawnOwner, PushHitResult);
 		FVector BlockDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
 		BlockDelta.Z = 0.0f;
 
 		FHitResult PushHitResult2;
 		SafeMoveUpdatedComponent(BlockDelta, UpdatedComponent->GetComponentRotation(), false, PushHitResult2);
-		return;
+
+		if (!bContinuePushing)
+		{
+			SetDefaultMovementMode();
+		}
+	}
+	else
+	{
+		// We're pulling the block instead, so move the character first
+		FHitResult PullHitResult;
+		const FVector PlayerInitialLocation = UpdatedComponent->GetComponentLocation();
+		SafeMoveUpdatedComponent(InitialMovement, UpdatedComponent->GetComponentRotation(), true, PullHitResult);
+
+		const FVector CharacterDelta = UpdatedComponent->GetComponentLocation() - PlayerInitialLocation;
+		FHitResult PushHitResult;
+		if (!GrabbedBlock->Push(CharacterDelta, PawnOwner, PushHitResult))
+		{
+			SetDefaultMovementMode();
+		}
 	}
 
-	// We're pulling the block instead, so move the character first
-	FHitResult PullHitResult;
-	const FVector PlayerInitialLocation = UpdatedComponent->GetComponentLocation();
-	SafeMoveUpdatedComponent(InitialMovement, UpdatedComponent->GetComponentRotation(), true, PullHitResult);
-
-	const FVector CharacterDelta = UpdatedComponent->GetComponentLocation() - PlayerInitialLocation;
-	FHitResult PushHitResult;
-	GrabbedBlock->Push(CharacterDelta, PawnOwner, PushHitResult);
+	FFindFloorResult FindFloorResult;
+	FindFloor(UpdatedComponent->GetComponentLocation(), FindFloorResult, true);
+	if (!FindFloorResult.IsWalkableFloor())
+	{
+		SetDefaultMovementMode();
+	}
+	/* else
+	{
+		FHitResult EmptyHit;
+		const FVector FloorDelta = FVector(0.0f, 0.0f, -FindFloorResult.GetDistanceToFloor());
+		SafeMoveUpdatedComponent(FloorDelta, UpdatedComponent->GetComponentRotation(), false, EmptyHit);
+	} */
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 

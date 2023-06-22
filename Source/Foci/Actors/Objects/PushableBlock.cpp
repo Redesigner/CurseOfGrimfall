@@ -30,9 +30,9 @@ void APushableBlock::Tick(float DeltaTime)
 	const FVector EndLocation = StartLocation + Delta;
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
-	if (LastGrabber.IsValid())
+	if (LastUser.IsValid())
 	{
-		CollisionQueryParams.AddIgnoredActor(LastGrabber.Get());
+		CollisionQueryParams.AddIgnoredActor(LastUser.Get());
 	}
 
 	GetWorld()->SweepSingleByProfile(MoveHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
@@ -45,9 +45,9 @@ void APushableBlock::Tick(float DeltaTime)
 	AddActorWorldOffset(Delta);
 }
 
-void APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
+bool APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 {
-	LastGrabber = Source;
+	LastUser = Source;
 	const FVector StartLocation = Box->GetComponentLocation();
 	const FVector EndLocation = StartLocation + Delta;
 	FCollisionQueryParams CollisionQueryParams;
@@ -74,6 +74,8 @@ void APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 	{
 		AddActorWorldOffset(Delta);
 	}
+
+	return SnapToFloor();
 }
 
 UBoxComponent* APushableBlock::GetBlockComponent() const
@@ -90,9 +92,9 @@ bool APushableBlock::SnapToFloor()
 	const FVector EndLocation = StartLocation - FVector(0.0f, 0.0f, SnapHeight);
 	FCollisionQueryParams CollisionQueryParams;
 	CollisionQueryParams.AddIgnoredActor(this);
-	if (LastGrabber.IsValid())
+	if (LastUser.IsValid())
 	{
-		CollisionQueryParams.AddIgnoredActor(LastGrabber.Get());
+		CollisionQueryParams.AddIgnoredActor(LastUser.Get());
 	}
 
 	GetWorld()->SweepSingleByProfile(FloorHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
