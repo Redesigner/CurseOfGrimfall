@@ -139,6 +139,8 @@ private:
 
 	void PhysPulling(float DeltaTime, int32 Iterations);
 
+	void PushBlock(FVector Delta);
+
 	void ReleaseLedge();
 
 	void ReleaseLadder();
@@ -153,5 +155,28 @@ private:
 
 	FVector TetherDestination;
 
+
+	// ====== BLOCK PUSHING ======
 	TWeakObjectPtr<class APushableBlock> GrabbedBlock;
+
+	// How long the player has to press a move before the block actually begins moving
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Pushing", meta = (AllowPrivateAccess = true))
+	float PushRequiredTime = 1.0f;
+	float PushCurrentTime = 0.0f;
+
+	// How far we push the block each time
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Pushing", meta = (AllowPrivateAccess = true))
+	float PushDistance = 50.0f;
+	// How far we've pushed the block this move
+	float PushCurrentDistance = 0.0f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Pushing", meta = (AllowPrivateAccess = true))
+	float PushVelocity = 50.0f;
+
+	// Are we currently moving the block
+	bool bPushingMove = false;
+
+	// Which direction is the block moving? True is pushing, False is pulling
+	bool bPushingDirection = false;
+
 };

@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "VisualLogger/VisualLogger.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "Ladder.h"
 #include "FociCharacter.h"
@@ -221,56 +222,52 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
-	ApplyRootMotionToVelocity(DeltaTime);
+	const FVector Delta = PawnOwner->GetActorForwardVector() * InputVelocity * PushVelocity * DeltaTime;
+	PushBlock(Delta);
 
-	// const float RelativeVelocity = InputVelocity * DeltaTime * 100.0f;
-	// TODO: Use rootmotion here instead?
-	const FVector InitialMovement = Velocity * DeltaTime;
 
-	// We're pushing forward, so the block is going to move before the character.
-	if (InputVelocity > 0.0f)
-	{
-		FHitResult PushHitResult;
-		const FVector BlockInitialLocation = GrabbedBlock->GetActorLocation();
-		const bool bContinuePushing = GrabbedBlock->Push(InitialMovement, PawnOwner, PushHitResult);
-		FVector BlockDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
-		BlockDelta.Z = 0.0f;
-
-		FHitResult PushHitResult2;
-		SafeMoveUpdatedComponent(BlockDelta, UpdatedComponent->GetComponentRotation(), false, PushHitResult2);
-
-		if (!bContinuePushing)
-		{
-			SetDefaultMovementMode();
-		}
-	}
-	else
-	{
-		// We're pulling the block instead, so move the character first
-		FHitResult PullHitResult;
-		const FVector PlayerInitialLocation = UpdatedComponent->GetComponentLocation();
-		SafeMoveUpdatedComponent(InitialMovement, UpdatedComponent->GetComponentRotation(), true, PullHitResult);
-
-		const FVector CharacterDelta = UpdatedComponent->GetComponentLocation() - PlayerInitialLocation;
-		FHitResult PushHitResult;
-		if (!GrabbedBlock->Push(CharacterDelta, PawnOwner, PushHitResult))
-		{
-			SetDefaultMovementMode();
-		}
-	}
-
+	// Check if we're on a valid floor, if not, start falling
 	FFindFloorResult FindFloorResult;
 	FindFloor(UpdatedComponent->GetComponentLocation(), FindFloorResult, true);
 	if (!FindFloorResult.IsWalkableFloor())
 	{
 		SetDefaultMovementMode();
 	}
-	/* else
+}
+
+void UMarleMovementComponent::PushBlock(FVector Delta)
+{
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(UpdatedComponent);
+
+	FHitResult CharacterPushHitResult;
+	const FVector StartLocation = UpdatedComponent->GetComponentLocation();
+	const FVector EndLocation = StartLocation + Delta;
+	FCollisionQueryParams CollisionQueryParams;
+	CollisionQueryParams.AddIgnoredActor(PawnOwner);
+	CollisionQueryParams.AddIgnoredActor(GrabbedBlock.Get());
+	GetWorld()->SweepSingleByProfile(CharacterPushHitResult, StartLocation, EndLocation,
+		UpdatedComponent->GetComponentQuat(), Capsule->GetCollisionProfileName(), Capsule->GetCollisionShape(1.0f), CollisionQueryParams);
+	
+	FVector PostCollisionDelta = Delta;
+	if (CharacterPushHitResult.bBlockingHit)
 	{
-		FHitResult EmptyHit;
-		const FVector FloorDelta = FVector(0.0f, 0.0f, -FindFloorResult.GetDistanceToFloor());
-		SafeMoveUpdatedComponent(FloorDelta, UpdatedComponent->GetComponentRotation(), false, EmptyHit);
-	} */
+		PostCollisionDelta = CharacterPushHitResult.Location - CharacterPushHitResult.TraceStart;
+		if (!CharacterPushHitResult.bStartPenetrating)
+		{
+			PostCollisionDelta -= Delta.GetSafeNormal() * 0.1f;
+		}
+	}
+	const FVector BlockInitialLocation = GrabbedBlock->GetActorLocation();
+	FHitResult Empty;
+	FHitResult BlockPushResult;
+	const bool bBreakGrab = !GrabbedBlock->Push(PostCollisionDelta, PawnOwner, BlockPushResult);
+	SafeMoveUpdatedComponent(GrabbedBlock->GetActorLocation() - BlockInitialLocation, UpdatedComponent->GetComponentRotation(), false, Empty);
+
+	if (bBreakGrab)
+	{
+		ReleaseBlock();
+		SetDefaultMovementMode();
+	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 

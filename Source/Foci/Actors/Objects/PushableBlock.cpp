@@ -61,13 +61,15 @@ bool APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 		UE_LOG(LogTemp, Display, TEXT("Pushing block, but block hit object '%s'"), *HitResult.GetActor()->GetFName().ToString())
 		if (AFloorButton* FloorButton = Cast<AFloorButton>(HitResult.GetActor()))
 		{
+			// Don't count buttons as blocking hits
+			HitResult.bBlockingHit = false;
 			FloorButton->Trigger(Source);
 			SnapToButton(FloorButton, Delta);
 		}
 		else
 		{
 			const FVector Delta = HitResult.Location - StartLocation;
-			AddActorWorldOffset(Delta - Delta.GetSafeNormal());
+			AddActorWorldOffset(Delta - Delta.GetSafeNormal() * 0.1f);
 		}
 	}
 	else
