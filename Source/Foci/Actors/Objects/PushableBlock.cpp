@@ -63,13 +63,24 @@ bool APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 	
 	if (HitResult.IsValidBlockingHit())
 	{
-		UE_LOG(LogTemp, Display, TEXT("Pushing block, but block hit object '%s'"), *HitResult.GetActor()->GetFName().ToString())
 		if (AFloorButton* FloorButton = Cast<AFloorButton>(HitResult.GetActor()))
 		{
-			// Don't count buttons as blocking hits
-			HitResult.bBlockingHit = false;
 			FloorButton->Trigger(Source);
-			SnapToButton(FloorButton, Delta);
+			// SnapToButton(FloorButton, Delta);
+			HitResult.Reset();
+
+			// Sweep again, but ignore the button
+			CollisionQueryParams.AddIgnoredActor(FloorButton);
+			GetWorld()->SweepSingleByProfile(HitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(0.0f), CollisionQueryParams);
+			if (HitResult.IsValidBlockingHit())
+			{
+				const FVector Delta = HitResult.Location - StartLocation;
+				AddActorWorldOffset(Delta - Delta.GetSafeNormal() * 0.1f);
+			}
+			else
+			{
+				AddActorWorldOffset(Delta);
+			}
 		}
 		else
 		{
@@ -117,6 +128,22 @@ bool APushableBlock::SnapToFloor()
 		if (AFloorButton* FloorButton = Cast<AFloorButton>(FloorHitResult.GetActor()))
 		{
 			FloorButton->Trigger(this);
+			FloorHitResult.Reset();
+
+			// Sweep again, but ignore the button
+			CollisionQueryParams.AddIgnoredActor(FloorButton);
+			GetWorld()->SweepSingleByProfile(FloorHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(0.0f), CollisionQueryParams);
+			if (FloorHitResult.IsValidBlockingHit())
+			{
+				SnapDelta = FloorHitResult.Location - StartLocation;
+				if (!FloorHitResult.bStartPenetrating)
+				{
+					SnapDelta += FVector(0.0f, 0.0f, 0.5f);
+				}
+				AddActorWorldOffset(SnapDelta, false);
+				return true;
+			}
+			return false;
 		}
 		Velocity.Z = 0.0f;
 		return true;

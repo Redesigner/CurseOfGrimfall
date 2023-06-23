@@ -79,6 +79,8 @@ protected:
 
 	virtual void ControlledCharacterMove(const FVector& InputVector, float DeltaSeconds) override;
 
+	virtual void OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode) override;
+
 	void CapsuleHit(UPrimitiveComponent* OverlappedComponent, UPrimitiveComponent* OtherComp, const FHitResult& SweepResult);
 
 	bool CanGrabLedge(UPrimitiveComponent* CapsuleComponent, UPrimitiveComponent* LedgeComponent, const FHitResult& LedgeSweepResult, FVector& LedgeLocationOut);
@@ -86,6 +88,11 @@ protected:
 
 public:
 	virtual FRotator GetDeltaRotation(float DeltaTime) const override;
+
+	// A delegate to work with our virtual function
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnMovementModeUpdated, EMovementMode, NewMovementMode, uint8, NewCustomMode,
+		EMovementMode, PreviousMovementMode, uint8, PreviousCustomMode);
+	FOnMovementModeUpdated OnMovementModeUpdated;
 
 	UFUNCTION(BlueprintCallable)
 	void FinishMantling();
@@ -127,6 +134,8 @@ private:
 
 	void MoveBlock(FVector InputVector, float DeltaTime);
 
+	void TryHop();
+
 
 	void PhysClimbing(float DeltaTime, int32 Iterations);
 
@@ -144,6 +153,8 @@ private:
 	void ReleaseLedge();
 
 	void ReleaseLadder();
+
+	void ReleaseBlock_Internal();
 
 	bool bMantling = false;
 
@@ -178,5 +189,7 @@ private:
 
 	// Which direction is the block moving? True is pushing, False is pulling
 	float PushingDirection = 0.0f;
+
+	bool bBlockReleaseRequested = false;
 
 };

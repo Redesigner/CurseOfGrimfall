@@ -59,6 +59,7 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
 	MarleMovementComponent = Cast<UMarleMovementComponent>(GetCharacterMovement());
+	MarleMovementComponent->OnMovementModeUpdated.AddDynamic(this, &AFociCharacter::OnMovementModeUpdated);
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -188,6 +189,15 @@ void AFociCharacter::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	}
 }
 
+void AFociCharacter::OnMovementModeUpdated(EMovementMode NewMovementMode, uint8 NewCustomMode, EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+{
+	if (PreviousMovementMode == EMovementMode::MOVE_Walking)
+	{
+		DisableFirstPerson();
+		ReleaseWeapon();
+	}
+}
+
 void AFociCharacter::MoveToLocation(FVector Location)
 {
 	bMovingToLocation = true;
@@ -280,7 +290,7 @@ void AFociCharacter::Interact()
 			continue;
 		}
 	}
-	if (!bFoundTarget)
+	if (!bFoundTarget && bHasFocusTarget)
 	{
 		ClearFocusTarget();
 	}
@@ -683,6 +693,10 @@ void AFociCharacter::SlotReleased(uint8 SlotIndex)
 {
 	// UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
 	if (!bWeaponDrawn || !bWeaponReady)
+	{
+		return;
+	}
+	if (!CanAttack())
 	{
 		return;
 	}

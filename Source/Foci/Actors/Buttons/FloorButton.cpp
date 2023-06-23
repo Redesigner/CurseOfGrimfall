@@ -23,7 +23,7 @@ void AFloorButton::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, 
 	{
 		return;
 	}
-	UE_LOG(LogButtonSystem, Display, TEXT("FloorButton hit by '%s', direction is '%s'"), *OtherActor->GetFName().ToString(), *Hit.ImpactNormal.ToString())
+	// UE_LOG(LogButtonSystem, Display, TEXT("FloorButton hit by '%s', direction is '%s'"), *OtherActor->GetFName().ToString(), *Hit.ImpactNormal.ToString())
 	if (Hit.ImpactNormal.Z <= -0.9f)
 	{
 		Trigger(OtherActor);

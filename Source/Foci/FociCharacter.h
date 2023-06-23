@@ -214,6 +214,8 @@ public:
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	UFUNCTION()
+	void OnMovementModeUpdated(EMovementMode NewMovementMode, uint8 NewCustomMode, EMovementMode PreviousMovementMode, uint8 PreviousCustomMode);
 
 	UFUNCTION(BlueprintCallable)
 	void MoveToLocation(FVector Location);

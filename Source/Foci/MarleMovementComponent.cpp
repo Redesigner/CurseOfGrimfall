@@ -84,22 +84,20 @@ void UMarleMovementComponent::PhysWalking(float DeltaTime, int32 Iterations)
 		const FVector StartLocation = UpdatedComponent->GetComponentLocation();
 		const FVector EndLocation = StartLocation + UpdatedComponent->GetForwardVector() * LedgeHorizontalReach;
 		FCollisionQueryParams CollisionQueryParams;
-		CollisionQueryParams.AddIgnoredActor(UpdatedComponent->GetOwner());
+		CollisionQueryParams.AddIgnoredActor(PawnOwner);
 		GetWorld()->LineTraceSingleByProfile(ForwardSweepResult, StartLocation, EndLocation, PrimitiveComponent->GetCollisionProfileName(), CollisionQueryParams);
 		FVector GrabLocation;
 		if (!ForwardSweepResult.GetComponent())
 		{
-			CharacterOwner->Jump();
+			TryHop();
 			return;
 		}
 		if (CanGrabLedge(PrimitiveComponent, ForwardSweepResult.GetComponent(), ForwardSweepResult, GrabLocation))
 		{
 			GrabLedge(ForwardSweepResult.GetComponent(), ForwardSweepResult.ImpactNormal, GrabLocation);
+			return;
 		}
-		else
-		{
-			LedgeClimbTimeHeld = 0.0f;
-		}
+		TryHop();
 	}
 }
 
@@ -216,13 +214,12 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 {
 	if (!GrabbedBlock.IsValid())
 	{
-		ReleaseBlock();
+		ReleaseBlock_Internal();
 		return;
 	}
 	if (bPushingMove)
 	{
 		float DeltaLinear = PushingDirection * PushVelocity * DeltaTime;
-		UE_LOG(LogTemp, Display, TEXT("Current move distance: %f"), PushCurrentDistance)
 		if (PushCurrentDistance + FMath::Abs(DeltaLinear) > PushDistance)
 		{
 			// Cap the delta so we only push the PushDistance
@@ -233,7 +230,11 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 			}
 			PushCurrentDistance = 0.0f;
 			bPushingMove = false;
-			UE_LOG(LogTemp, Display, TEXT("Block push move completed"))
+			if (bBlockReleaseRequested)
+			{
+				ReleaseBlock_Internal();
+				return;
+			}
 		}
 		else
 		{
@@ -292,11 +293,13 @@ void UMarleMovementComponent::PushBlock(FVector Delta)
 	FHitResult Empty;
 	FHitResult BlockPushResult;
 	const bool bBreakGrab = !GrabbedBlock->Push(PostCollisionDelta, PawnOwner, BlockPushResult);
-	SafeMoveUpdatedComponent(GrabbedBlock->GetActorLocation() - BlockInitialLocation, UpdatedComponent->GetComponentRotation(), false, Empty);
+	FVector PlayerFinalDelta = GrabbedBlock->GetActorLocation() - BlockInitialLocation;
+	PlayerFinalDelta.Z = 0.0f;
+	SafeMoveUpdatedComponent(PlayerFinalDelta, UpdatedComponent->GetComponentRotation(), false, Empty);
 
 	if (bBreakGrab)
 	{
-		ReleaseBlock();
+		ReleaseBlock_Internal();
 	}
 
 	// Check if we're on a valid floor, if not, start falling
@@ -304,7 +307,7 @@ void UMarleMovementComponent::PushBlock(FVector Delta)
 	FindFloor(UpdatedComponent->GetComponentLocation(), FindFloorResult, true);
 	if (!FindFloorResult.IsWalkableFloor())
 	{
-		ReleaseBlock();
+		ReleaseBlock_Internal();
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -387,6 +390,12 @@ FRotator UMarleMovementComponent::GetDeltaRotation(float DeltaTime) const
 	}
 }
 
+void UMarleMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+	OnMovementModeUpdated.Broadcast(MovementMode, CustomMovementMode, PreviousMovementMode, PreviousCustomMode);
+}
+
 void UMarleMovementComponent::FinishMantling()
 {
 	bMantling = false;
@@ -447,7 +456,8 @@ bool UMarleMovementComponent::CanGrabLedge(UPrimitiveComponent* CapsuleComponent
 	FHitResult SurfaceHitResult;
 	const FCollisionQueryParams CollisionQueryParams;
 	// Line trace down, to see if the object we just hit has a top surface we can grab
-	if (!LedgeComponent->LineTraceComponent(SurfaceHitResult, SweepStartLocation, SweepEndLocation, CollisionQueryParams))
+	GetWorld()->LineTraceSingleByProfile(SurfaceHitResult, SweepStartLocation, SweepEndLocation, CapsuleComponent->GetCollisionProfileName(), CollisionQueryParams);
+	if (!(SurfaceHitResult.bBlockingHit && SurfaceHitResult.GetActor() && SurfaceHitResult.GetActor() == LedgeComponent->GetOwner()))
 	{
 		return false;
 	}
@@ -470,10 +480,13 @@ bool UMarleMovementComponent::CanGrabLedge(UPrimitiveComponent* CapsuleComponent
 		GroundTestCollisionQueryParams.AddIgnoredActor(CharacterOwner);
 		GetWorld()->SweepSingleByChannel(GroundHitTest, GroundStartLocation, GroundEndLocation, UpdatedComponent->GetComponentQuat(), ECollisionChannel::ECC_WorldStatic, Capsule, GroundTestCollisionQueryParams);
 		WillForceIntoGround = GroundHitTest.bBlockingHit;
+
+		/*
 		DrawDebugCapsule(GetWorld(), GroundStartLocation, Capsule.GetCapsuleHalfHeight(), Capsule.GetCapsuleRadius(), UpdatedComponent->GetComponentQuat(), FColor::Blue, false, 15.0f);
 		DrawDebugCapsule(GetWorld(), GroundEndLocation, Capsule.GetCapsuleHalfHeight(), Capsule.GetCapsuleRadius(), UpdatedComponent->GetComponentQuat(), FColor::Blue, false, 15.0f);
 		DrawDebugDirectionalArrow(GetWorld(), GroundStartLocation, GroundEndLocation, 5.0f, FColor::Blue, false, 15.0f);
 		DrawDebugCapsule(GetWorld(), GroundHitTest.Location, Capsule.GetCapsuleHalfHeight(), Capsule.GetCapsuleRadius(), UpdatedComponent->GetComponentQuat(), FColor::Red, false, 15.0f);
+		*/
 	}
 	else
 	{
@@ -558,17 +571,12 @@ void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 
 void UMarleMovementComponent::ReleaseBlock()
 {
-	GrabbedBlock = nullptr;
-
-	bOrientRotationToMovement = true;
-	bUseControllerDesiredRotation = true;
-
-	PushCurrentDistance = 0.0f;
-	PushCurrentTime = 0.0f;
-	bPushingMove = false;
-	PushingDirection = 0.0f;
-
-	SetDefaultMovementMode();
+	if (bPushingMove)
+	{
+		bBlockReleaseRequested = true;
+		return;
+	}
+	ReleaseBlock_Internal();
 }
 
 float UMarleMovementComponent::GetInputVelocity() const
@@ -665,6 +673,35 @@ void UMarleMovementComponent::MoveBlock(FVector InputVector, float DeltaTime)
 	InputVelocity = InputVector.X;
 }
 
+void UMarleMovementComponent::TryHop()
+{
+	LedgeClimbTimeHeld = 0.0f;
+
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(UpdatedComponent);
+
+	// Objects must be shorter than this height in order for us to jump
+	FHitResult HopClearanceResult;
+	const float HopClearanceHeight = 50.0f;
+	const float HopHorizontalDistance = 50.0f;
+	const FVector HopStartLocation = UpdatedComponent->GetComponentLocation() + FVector(0.0f, 0.0f, HopClearanceHeight);
+	const FVector HopEndLocation = HopStartLocation + PawnOwner->GetActorForwardVector() * HopHorizontalDistance;
+	FCollisionQueryParams CollisionQueryParams;
+	CollisionQueryParams.AddIgnoredActor(PawnOwner);
+
+	GetWorld()->SweepSingleByProfile(HopClearanceResult, HopStartLocation, HopEndLocation, UpdatedComponent->GetComponentQuat(),
+		Capsule->GetCollisionProfileName(), Capsule->GetCollisionShape(1.0f), CollisionQueryParams);
+
+	/*
+	DrawDebugCapsule(GetWorld(), HopStartLocation, Capsule->GetScaledCapsuleHalfHeight(), Capsule->GetScaledCapsuleRadius(), Capsule->GetComponentQuat(), FColor::Blue, false, 2.0f);
+	DrawDebugCapsule(GetWorld(), HopClearanceResult.Location, Capsule->GetScaledCapsuleHalfHeight(), Capsule->GetScaledCapsuleRadius(), Capsule->GetComponentQuat(), FColor::Blue, false, 2.0f);
+	*/
+
+	if (!HopClearanceResult.bBlockingHit)
+	{
+		CharacterOwner->Jump();
+	}
+}
+
 void UMarleMovementComponent::ReleaseLedge()
 { 
 	UE_LOG(LogTemp, Display, TEXT("Released Ledge"))
@@ -681,6 +718,22 @@ void UMarleMovementComponent::ReleaseLadder()
 	LadderBase = nullptr;
 	DistanceAlongLadder = 0.0f;
 	bMantling = true;
+}
+
+void UMarleMovementComponent::ReleaseBlock_Internal()
+{
+	GrabbedBlock = nullptr;
+
+	bOrientRotationToMovement = true;
+	bUseControllerDesiredRotation = true;
+
+	PushCurrentDistance = 0.0f;
+	PushCurrentTime = 0.0f;
+	bPushingMove = false;
+	PushingDirection = 0.0f;
+
+	SetDefaultMovementMode();
+	bBlockReleaseRequested = false;
 }
 
 FVector UMarleMovementComponent::GetGrabLocation() const
