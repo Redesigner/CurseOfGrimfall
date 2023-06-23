@@ -161,7 +161,7 @@ private:
 
 	// How long the player has to press a move before the block actually begins moving
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Pushing", meta = (AllowPrivateAccess = true))
-	float PushRequiredTime = 1.0f;
+	float PushRequiredTime = 0.6f;
 	float PushCurrentTime = 0.0f;
 
 	// How far we push the block each time
@@ -171,12 +171,12 @@ private:
 	float PushCurrentDistance = 0.0f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Pushing", meta = (AllowPrivateAccess = true))
-	float PushVelocity = 50.0f;
+	float PushVelocity = 150.0f;
 
 	// Are we currently moving the block
 	bool bPushingMove = false;
 
 	// Which direction is the block moving? True is pushing, False is pulling
-	bool bPushingDirection = false;
+	float PushingDirection = 0.0f;
 
 };

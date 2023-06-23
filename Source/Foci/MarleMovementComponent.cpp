@@ -214,24 +214,55 @@ void UMarleMovementComponent::PhysTethered(float DeltaTime, int32 Iterations)
 
 void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 {
-	if (InputVelocity == 0.0f)
-	{
-		return;
-	}
 	if (!GrabbedBlock.IsValid())
 	{
+		ReleaseBlock();
 		return;
 	}
-	const FVector Delta = PawnOwner->GetActorForwardVector() * InputVelocity * PushVelocity * DeltaTime;
-	PushBlock(Delta);
-
-
-	// Check if we're on a valid floor, if not, start falling
-	FFindFloorResult FindFloorResult;
-	FindFloor(UpdatedComponent->GetComponentLocation(), FindFloorResult, true);
-	if (!FindFloorResult.IsWalkableFloor())
+	if (bPushingMove)
 	{
-		SetDefaultMovementMode();
+		float DeltaLinear = PushingDirection * PushVelocity * DeltaTime;
+		UE_LOG(LogTemp, Display, TEXT("Current move distance: %f"), PushCurrentDistance)
+		if (PushCurrentDistance + FMath::Abs(DeltaLinear) > PushDistance)
+		{
+			// Cap the delta so we only push the PushDistance
+			DeltaLinear = PushDistance - PushCurrentDistance;
+			if (PushingDirection < 0.0f)
+			{
+				DeltaLinear = -DeltaLinear;
+			}
+			PushCurrentDistance = 0.0f;
+			bPushingMove = false;
+			UE_LOG(LogTemp, Display, TEXT("Block push move completed"))
+		}
+		else
+		{
+			PushCurrentDistance += FMath::Abs(DeltaLinear);
+		}
+		const FVector Delta = PawnOwner->GetActorForwardVector() * DeltaLinear;
+		PushBlock(Delta);
+		return;
+	}
+	if (InputVelocity == 0.0f) // The button's been released, so reset our accumulator
+	{
+		PushCurrentTime = 0.0f;
+		return;
+	}
+	if (PushingDirection == 0.0f) // We haven't set a direction that we're holding down
+	{
+		PushingDirection = InputVelocity;
+	}
+	else if (!((PushingDirection > 0.0f && InputVelocity > 0.0f) || (PushingDirection < 0.0f && InputVelocity < 0.0f)) ) // Signs aren't equal
+	{
+		PushingDirection = 0.0f;
+		PushCurrentTime = 0.0f;
+		return;
+	}
+	PushCurrentTime += DeltaTime;
+	if (PushCurrentTime >= PushRequiredTime)
+	{
+		bPushingMove = true;
+		PushCurrentTime = 0.0f;
 	}
 }
 
@@ -266,7 +297,14 @@ void UMarleMovementComponent::PushBlock(FVector Delta)
 	if (bBreakGrab)
 	{
 		ReleaseBlock();
-		SetDefaultMovementMode();
+	}
+
+	// Check if we're on a valid floor, if not, start falling
+	FFindFloorResult FindFloorResult;
+	FindFloor(UpdatedComponent->GetComponentLocation(), FindFloorResult, true);
+	if (!FindFloorResult.IsWalkableFloor())
+	{
+		ReleaseBlock();
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -524,6 +562,11 @@ void UMarleMovementComponent::ReleaseBlock()
 
 	bOrientRotationToMovement = true;
 	bUseControllerDesiredRotation = true;
+
+	PushCurrentDistance = 0.0f;
+	PushCurrentTime = 0.0f;
+	bPushingMove = false;
+	PushingDirection = 0.0f;
 
 	SetDefaultMovementMode();
 }
