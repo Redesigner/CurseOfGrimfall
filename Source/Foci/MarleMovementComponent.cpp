@@ -467,6 +467,8 @@ void UMarleMovementComponent::ActivateTether(FVector Location)
 
 void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 {
+	UBoxComponent* BlockComponent = Block->GetBlockComponent();
+	UCapsuleComponent* PlayerCapsule = Cast<UCapsuleComponent>(UpdatedComponent);
 	// Please note, the "Block" is just terminology. It doesn't have to be a box shape.
 	// Do a line trace to find the surface normal of our block
 	FHitResult GrabNormalSweepResult;
@@ -474,7 +476,7 @@ void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 	const FVector SweepEnd = SweepStart + PawnOwner->GetActorForwardVector() * 100.0f;
 	FCollisionQueryParams CollisionQueryParams;
 
-	Block->GetBlockComponent()->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
+	BlockComponent->LineTraceComponent(GrabNormalSweepResult, SweepStart, SweepEnd, CollisionQueryParams);
 	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.TraceStart, GrabNormalSweepResult.TraceEnd, 5.0f, FColor::Red, false, 5.0f);
 	// DrawDebugDirectionalArrow(GetWorld(), GrabNormalSweepResult.ImpactPoint, GrabNormalSweepResult.ImpactPoint + GrabNormalSweepResult.ImpactNormal * 50.0f, 5.0f, FColor::Blue, false, 5.0f);
 
@@ -487,14 +489,20 @@ void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 
 	const FVector Normal2D = GrabNormalSweepResult.ImpactNormal.GetSafeNormal2D();
 
-	// Move the character into the block, and let the sweep take care of it
 	FHitResult SnapGrabResult;
-	SafeMoveUpdatedComponent(Normal2D * -50.0f, UpdatedComponent->GetComponentRotation(), true, SnapGrabResult);
+	BlockComponent->SweepComponent(SnapGrabResult, SweepStart, SweepStart + Normal2D * -100.0f, PlayerCapsule->GetComponentQuat(), PlayerCapsule->GetCollisionShape(0.0f));
 
-	if (SnapGrabResult.GetActor() != Block)
+	FHitResult SnapGrabResult2;
+	SafeMoveUpdatedComponent(SnapGrabResult.Location - PlayerCapsule->GetComponentLocation(), UpdatedComponent->GetComponentRotation(), true, SnapGrabResult2);
+
+	if (SnapGrabResult2.GetActor() && SnapGrabResult2.GetActor() != Block)
 	{
-		// Hit something else before the block, don't grab it
-		return;
+		const FVector SnapGrabDifference = SnapGrabResult2.Location - SnapGrabResult.Location;
+		if (SnapGrabDifference.SquaredLength() > 1.0f) // Test if we are very close to hitting the other object first. If so, grab anyways
+		{
+			// Hit something else before the block, don't grab it
+			return;
+		}
 	}
 
 	SetMovementMode(EMovementMode::MOVE_Custom, 2);
