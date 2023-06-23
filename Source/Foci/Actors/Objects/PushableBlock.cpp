@@ -35,11 +35,16 @@ void APushableBlock::Tick(float DeltaTime)
 		CollisionQueryParams.AddIgnoredActor(LastUser.Get());
 	}
 
-	GetWorld()->SweepSingleByProfile(MoveHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
+	GetWorld()->SweepSingleByProfile(MoveHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(0.0f), CollisionQueryParams);
 
 	if (MoveHitResult.bBlockingHit)
 	{
-		AddActorWorldOffset(MoveHitResult.Location - StartLocation, false);
+		FVector PostCollisionDelta = MoveHitResult.Location - StartLocation;
+		if (!MoveHitResult.bStartPenetrating)
+		{
+			PostCollisionDelta -= Delta.GetSafeNormal() * 0.1f;
+		}
+		AddActorWorldOffset(PostCollisionDelta, false);
 		return;
 	}
 	AddActorWorldOffset(Delta);
@@ -99,11 +104,16 @@ bool APushableBlock::SnapToFloor()
 		CollisionQueryParams.AddIgnoredActor(LastUser.Get());
 	}
 
-	GetWorld()->SweepSingleByProfile(FloorHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(1.0f), CollisionQueryParams);
+	GetWorld()->SweepSingleByProfile(FloorHitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(0.0f), CollisionQueryParams);
 	
 	if (FloorHitResult.bBlockingHit)
 	{
-		AddActorWorldOffset(FloorHitResult.Location - StartLocation, false);
+		FVector SnapDelta = FloorHitResult.Location - StartLocation;
+		if (!FloorHitResult.bStartPenetrating)
+		{
+			SnapDelta += FVector(0.0f, 0.0f, 0.5f);
+		}
+		AddActorWorldOffset(SnapDelta, false);
 		if (AFloorButton* FloorButton = Cast<AFloorButton>(FloorHitResult.GetActor()))
 		{
 			FloorButton->Trigger(this);

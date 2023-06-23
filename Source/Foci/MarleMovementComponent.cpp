@@ -246,7 +246,7 @@ void UMarleMovementComponent::PushBlock(FVector Delta)
 	CollisionQueryParams.AddIgnoredActor(PawnOwner);
 	CollisionQueryParams.AddIgnoredActor(GrabbedBlock.Get());
 	GetWorld()->SweepSingleByProfile(CharacterPushHitResult, StartLocation, EndLocation,
-		UpdatedComponent->GetComponentQuat(), Capsule->GetCollisionProfileName(), Capsule->GetCollisionShape(1.0f), CollisionQueryParams);
+		UpdatedComponent->GetComponentQuat(), Capsule->GetCollisionProfileName(), Capsule->GetCollisionShape(0.0f), CollisionQueryParams);
 	
 	FVector PostCollisionDelta = Delta;
 	if (CharacterPushHitResult.bBlockingHit)
@@ -481,6 +481,19 @@ void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 	// This type of line trace doesn't work with bBlockingHit, so this is the simplest way to determine if we've hit the block or not.
 	if (GrabNormalSweepResult.Time >= 1.0f)
 	{
+		// We didn't hit the object, so there is no normal
+		return;
+	}
+
+	const FVector Normal2D = GrabNormalSweepResult.ImpactNormal.GetSafeNormal2D();
+
+	// Move the character into the block, and let the sweep take care of it
+	FHitResult SnapGrabResult;
+	SafeMoveUpdatedComponent(Normal2D * -50.0f, UpdatedComponent->GetComponentRotation(), true, SnapGrabResult);
+
+	if (SnapGrabResult.GetActor() != Block)
+	{
+		// Hit something else before the block, don't grab it
 		return;
 	}
 
@@ -489,16 +502,12 @@ void UMarleMovementComponent::GrabBlock(APushableBlock* Block)
 	bOrientRotationToMovement = false;
 	bUseControllerDesiredRotation = false;
 
-	const FVector Normal2D = GrabNormalSweepResult.ImpactNormal.GetSafeNormal2D();
 	const float RotationYaw = FMath::RadiansToDegrees(FMath::Atan2(-Normal2D.Y, -Normal2D.X));
 	FRotator PawnRotation = PawnOwner->GetActorRotation();
 	PawnRotation.Yaw = RotationYaw;
 	PawnOwner->SetActorRotation(PawnRotation);
 
 	GrabbedBlock = Block;
-
-	// Move the character into the block, and let the sweep take care of it
-	MoveUpdatedComponent(Normal2D * -50.0f, UpdatedComponent->GetComponentRotation(), true);
 }
 
 void UMarleMovementComponent::ReleaseBlock()
