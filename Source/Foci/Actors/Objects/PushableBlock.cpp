@@ -74,8 +74,8 @@ bool APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 			GetWorld()->SweepSingleByProfile(HitResult, StartLocation, EndLocation, Box->GetComponentQuat(), Box->GetCollisionProfileName(), Box->GetCollisionShape(0.0f), CollisionQueryParams);
 			if (HitResult.IsValidBlockingHit())
 			{
-				const FVector Delta = HitResult.Location - StartLocation;
-				AddActorWorldOffset(Delta - Delta.GetSafeNormal() * 0.1f);
+				const FVector PushDelta = HitResult.Location - StartLocation;
+				AddActorWorldOffset(PushDelta - Delta.GetSafeNormal() * 0.1f);
 			}
 			else
 			{
@@ -84,8 +84,8 @@ bool APushableBlock::Push(FVector Delta, AActor* Source, FHitResult& HitResult)
 		}
 		else
 		{
-			const FVector Delta = HitResult.Location - StartLocation;
-			AddActorWorldOffset(Delta - Delta.GetSafeNormal() * 0.1f);
+			const FVector PushDelta = HitResult.Location - StartLocation;
+			AddActorWorldOffset(PushDelta - Delta.GetSafeNormal() * 0.1f);
 		}
 	}
 	else

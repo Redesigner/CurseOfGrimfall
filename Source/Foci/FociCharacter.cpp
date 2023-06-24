@@ -665,6 +665,10 @@ void AFociCharacter::SlotPressed(uint8 SlotIndex)
 		UE_LOG(LogWeaponSystem, Warning, TEXT("Weapon slot '%i' is null. Check that the weapon has been assigned properly."), SlotIndex)
 		return;
 	}
+	if (!CanAttack())
+	{
+		return;
+	}
 
 	// If we aren't targeting something, we want to enter first-person mode, first
 	// third-person mode and using a slotted weapon/tool aren't compatible right now
@@ -693,10 +697,6 @@ void AFociCharacter::SlotReleased(uint8 SlotIndex)
 {
 	// UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
 	if (!bWeaponDrawn || !bWeaponReady)
-	{
-		return;
-	}
-	if (!CanAttack())
 	{
 		return;
 	}
