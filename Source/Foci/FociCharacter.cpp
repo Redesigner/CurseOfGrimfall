@@ -17,6 +17,7 @@
 #include "Components/SkeletalMeshComponent.h"
 
 #include "Foci.h"
+#include "Foci/FociGameMode.h"
 #include "Dialog/DialogViewModel.h"
 #include "Foci/Components/HitboxController.h"
 #include "MarleMovementComponent.h"
@@ -24,6 +25,7 @@
 #include "Foci/Actors/Interactable.h"
 #include "Foci/Actors/Enemy.h"
 #include "Foci/Actors/Objects/PushableBlock.h"
+#include "Foci/Actors/Objects/Pot.h"
 #include "Foci/Components/WeaponTool.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
@@ -123,6 +125,10 @@ void AFociCharacter::Tick(float DeltaSeconds)
 			return;
 		}
 		LookAtTarget();
+	}
+	if (GetActorLocation().Z <= -100.0f)
+	{
+		FallDeath();
 	}
 }
 
@@ -426,6 +432,16 @@ bool AFociCharacter::CanAttack() const
 	return !bAttacking && MarleMovementComponent->MovementMode == EMovementMode::MOVE_Walking;
 }
 
+void AFociCharacter::FallDeath()
+{
+	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(GetWorld());
+
+	if (AFociGameMode* FociGameMode = Cast<AFociGameMode>(GameMode))
+	{
+		SetActorLocationAndRotation(FociGameMode->LastSpawnLocation, FociGameMode->LastSpawnRotation);
+	}
+}
+
 
 void AFociCharacter::Attack()
 {
@@ -462,6 +478,10 @@ void AFociCharacter::HitTarget_Internal(const FHitResult& HitResult)
 	{
 		Enemy->GetHealthComponent()->AddHealth(-1.0f);
 		Enemy->OnHit(this);
+	}
+	else if (APot* Pot = Cast<APot>(HitResult.GetActor()))
+	{
+		Pot->Break();
 	}
 	HitTarget(HitResult);
 }

@@ -13,6 +13,12 @@ class AFociGameMode : public AGameModeBase
 
 public:
 	AFociGameMode();
+
+	UPROPERTY()
+	bool bWorldActive;
+
+	FVector LastSpawnLocation;
+	FRotator LastSpawnRotation;
 };
 
 

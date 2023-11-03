@@ -1,15 +1,26 @@
 #include "EnemyMovementComponent.h"
 
 #include "Foci/Actors/Enemy.h"
+#include "Foci/FociGameMode.h"
 
 #include "GenericPlatform/GenericPlatformMath.h" 
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 void UEnemyMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	if (GameMode && !GameMode->bWorldActive)
+	{
+		return;
+	}
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	PhysMovement(DeltaTime);
+}
+
+UEnemyMovementComponent::UEnemyMovementComponent()
+{
+	GameMode = nullptr;
 }
 
 void UEnemyMovementComponent::SetUpdatedComponent(USceneComponent* Component)
@@ -33,6 +44,7 @@ void UEnemyMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	SetDefaultMovementMode();
+	GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 }
 
 void UEnemyMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

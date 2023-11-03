@@ -12,7 +12,7 @@ enum class EEnemyMovementMode : uint8
 	MOVE_Walking,
 	MOVE_Falling
 };
-
+class AFociGameMode;
 UCLASS()
 class FOCI_API UEnemyMovementComponent : public UPawnMovementComponent
 {
@@ -94,7 +94,11 @@ private:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Movement|Strafing", meta = (AllowPrivateAccess = true))
 	float MaxStrafeSpeed = 200.0f;
 
+	AFociGameMode* GameMode;
+
 public:
+	UEnemyMovementComponent();
+
 	virtual void SetUpdatedComponent(USceneComponent* Component) override;
 
 	UFUNCTION(BlueprintCallable)

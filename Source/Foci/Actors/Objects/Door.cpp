@@ -5,6 +5,7 @@
 #include "ActorSequenceComponent.h" 
 #include "ActorSequencePlayer.h"
 #include "Foci/FociCharacter.h"
+#include "Foci/FociGameMode.h"
 
 ADoor::ADoor()
 {
@@ -24,12 +25,14 @@ ADoor::ADoor()
 	ExitLocation = CreateDefaultSubobject<USceneComponent>(TEXT("Exit Location"));
 	ExitLocation->SetupAttachment(RootComponent);
 
+	GameMode = nullptr;
 }
 
 void ADoor::BeginPlay()
 {
 	Super::BeginPlay();
 	DoorInitialOffset = DoorMesh->GetRelativeLocation();
+	GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 }
 
 void ADoor::Tick(float DeltaTime)
@@ -42,6 +45,13 @@ void ADoor::Tick(float DeltaTime)
 void ADoor::Interact(AFociCharacter* Source)
 {
 	FlipDoor(Source->GetActorLocation());
+
+	if (GameMode)
+	{
+		GameMode->bWorldActive = false;
+		GameMode->LastSpawnLocation = ExitLocation->GetComponentLocation();
+		GameMode->LastSpawnRotation = FRotator(0.0f, ExitLocation->GetComponentRotation().Yaw, 0.0f);
+	}
 
 	bDoorOpen = true;
 	if (MovingSound)
@@ -62,6 +72,7 @@ void ADoor::Interact(AFociCharacter* Source)
 		Source->ResetCameraRotation();
 		Source->SetInputEnabled(true);
 		PlayerController->SetViewTarget(Source, TransitionParams);
+		GameMode->bWorldActive = true;
 		});
 
 	FTimerHandle DoorCloseTimer;

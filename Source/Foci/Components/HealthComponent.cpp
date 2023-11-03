@@ -20,6 +20,7 @@ float UHealthComponent::AddHealth(float Health)
 	{
 		if (CurrentHealth > 0.0f)
 		{
+			UE_LOG(LogTemp, Display, TEXT("Enemy died."));
 			OnDeath.Broadcast();
 		}
 		CurrentHealth = 0.0f;

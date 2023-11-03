@@ -7,6 +7,8 @@
 
 #include "Door.generated.h"
 
+class AFociGameMode;
+
 UCLASS()
 class FOCI_API ADoor : public AActor, public IInteractableInterface
 {
@@ -38,6 +40,8 @@ class FOCI_API ADoor : public AActor, public IInteractableInterface
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation, meta = (AllowPrivateAccess = true))
 	class USoundBase* MovingSound;
+
+	AFociGameMode* GameMode;
 
 public:
 	ADoor();

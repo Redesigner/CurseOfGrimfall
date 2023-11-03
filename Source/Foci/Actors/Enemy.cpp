@@ -96,3 +96,9 @@ void AEnemy::OnHit(APawn* Attacker)
 		EnemyAI->TrySetTarget(Attacker);
 	}
 }
+
+void AEnemy::BeginPlay()
+{
+	Super::BeginPlay();
+	HealthComponent->OnDeath.AddDynamic(this, &AEnemy::OnDeath);
+}

@@ -82,7 +82,7 @@ private:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Category = "Hookshot|Chain", meta = (AllowPrivateAccess = true))
 	float ChainLength = 0.0f;
 
-	TWeakObjectPtr<ACharacter> Owner;
+	TWeakObjectPtr<AFociCharacter> Owner;
 
 	FVector ChainDirection;
 

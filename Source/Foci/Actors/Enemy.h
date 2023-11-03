@@ -65,4 +65,6 @@ public:
 
 	UFUNCTION()
 	void OnHit(APawn* Attacker);
+
+	virtual void BeginPlay() override;
 };

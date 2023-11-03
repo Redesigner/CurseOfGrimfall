@@ -302,6 +302,8 @@ private:
 
 	bool CanAttack() const;
 
+	void FallDeath();
+
 	// void BindViewModel();
 
 	bool bMovingToLocation = false;

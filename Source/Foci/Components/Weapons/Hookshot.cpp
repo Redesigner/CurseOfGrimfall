@@ -64,6 +64,7 @@ void AHookshot::Fire(AFociCharacter* Character, FVector DefaultOrigin, FRotator 
 	HookshotStatus = EHookshotStatus::Extending;
 	HookLocation = HookshotMesh->GetComponentLocation();
 	Owner = Character;
+	Character->SetInputEnabled(false);
 	Super::Fire(Character, DefaultOrigin, DefaultRotation);
 }
 
@@ -132,6 +133,10 @@ void AHookshot::Retract(float DeltaTime)
 	{
 		SetChainLength(0.0f);
 		HookshotStatus = EHookshotStatus::Ready;
+		if (Owner.IsValid())
+		{
+			Owner->SetInputEnabled(true);
+		}
 	}
 	else
 	{

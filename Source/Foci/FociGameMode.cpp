@@ -14,4 +14,5 @@ AFociGameMode::AFociGameMode()
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
 	*/
+	bWorldActive = true;
 }
