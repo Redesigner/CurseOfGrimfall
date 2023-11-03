@@ -48,6 +48,9 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* ShieldMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class UWidgetComponent* ReticleWidget;
 	/** ===== END COMPONENTS ===== **/
 
 

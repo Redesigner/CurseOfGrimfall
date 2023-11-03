@@ -67,4 +67,6 @@ public:
 	void OnHit(APawn* Attacker);
 
 	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaSeconds) override;
 };

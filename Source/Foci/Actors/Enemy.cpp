@@ -102,3 +102,13 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 	HealthComponent->OnDeath.AddDynamic(this, &AEnemy::OnDeath);
 }
+
+void AEnemy::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GetActorLocation().Z <= -500.0f)
+	{
+		HealthComponent->AddHealth(-3.0f);
+	}
+}

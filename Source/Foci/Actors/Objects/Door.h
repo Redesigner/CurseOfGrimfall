@@ -36,6 +36,9 @@ class FOCI_API ADoor : public AActor, public IInteractableInterface
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Door, meta = (AllowPrivateAccess = true))
 	float DoorMovementSpeed = 200.0f;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Door, meta = (AllowPrivateAccess = true))
+	bool bDoorLocked = false;
+
 	FTimerHandle DoorSequenceTimer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation, meta = (AllowPrivateAccess = true))
@@ -51,6 +54,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void Interact(class AFociCharacter* Source) override;
+
+	UFUNCTION(BlueprintCallable)
+	void SetLocked(bool bLocked);
 
 private:
 	void FlipDoor(FVector PlayerLocation);

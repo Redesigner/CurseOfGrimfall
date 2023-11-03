@@ -15,6 +15,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/WidgetComponent.h"
 
 #include "Foci.h"
 #include "Foci/FociGameMode.h"
@@ -92,7 +93,11 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	ShieldMesh->SetupAttachment(GetMesh(), TEXT("Handle_R"));
 	ShieldMesh->SetUsingAbsoluteScale(true);
 
+	ReticleWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Reticle Widget"));
+	ReticleWidget->SetupAttachment(RootComponent);
+
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->OnTakeDamage.AddDynamic(this, &AFociCharacter::Damaged);
 	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
 
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
@@ -126,7 +131,7 @@ void AFociCharacter::Tick(float DeltaSeconds)
 		}
 		LookAtTarget();
 	}
-	if (GetActorLocation().Z <= -100.0f)
+	if (GetActorLocation().Z <= -500.0f)
 	{
 		FallDeath();
 	}
@@ -245,6 +250,8 @@ void AFociCharacter::LookAtTarget()
 	FRotator CameraRotation = Controller->GetControlRotation();
 	CameraRotation.Add(0.0, YawDifference, 0.0);
 	Controller->SetControlRotation(CameraRotation);
+
+	ReticleWidget->SetWorldLocation(FocusTarget->GetActorLocation());
 }
 
 void AFociCharacter::GrabLadder(ALadder* Ladder)
@@ -308,6 +315,7 @@ void AFociCharacter::Interact()
 void AFociCharacter::SetFocusTarget(AEnemy* Target)
 {
 	bHasFocusTarget = true;
+	ReticleWidget->SetVisibility(true);
 	FocusTarget = Target;
 	MarleMovementComponent->bOrientRotationToMovement = false;
 	FRotator ActorRotation = GetActorRotation();
@@ -324,6 +332,7 @@ void AFociCharacter::SetFocusTarget(AEnemy* Target)
 void AFociCharacter::ClearFocusTarget()
 {
 	bHasFocusTarget = false;
+	ReticleWidget->SetVisibility(false);
 	FocusTarget = nullptr;
 	MarleMovementComponent->bOrientRotationToMovement = true;
 	if (bWeaponReady)
@@ -763,6 +772,11 @@ void AFociCharacter::FireWeapon()
 	UE_LOG(LogWeaponSystem, Display, TEXT("Firing weapon '%s'"), *CurrentWeapon->GetFName().ToString())
 	CurrentWeapon->Fire(this, GetActorLocation() + FVector::UpVector * 35.0f,
 		HasTarget() ? (FocusTarget->GetActorLocation() - GetActorLocation()).ToOrientationRotator() : GetControlRotation());
+}
+
+void AFociCharacter::Damaged()
+{
+	OnDamaged();
 }
 
 

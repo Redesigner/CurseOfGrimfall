@@ -102,8 +102,15 @@ void AHookshot::Extend(float DeltaTime)
 	if (GetWorld()->SweepSingleByChannel(HookMovementHitResult, HookLocation, HookLocation + HookMovement, HookQuat,
 		ECollisionChannel::ECC_WorldStatic, CollisionShape, CollisionQueryParams))
 	{
-		HookLocation = HookMovementHitResult.Location;
-		SuccessfulHit(Owner.Get(), HookMovementHitResult.Location);
+		if (HookMovementHitResult.GetActor()->ActorHasTag("HookShot"))
+		{
+			HookLocation = HookMovementHitResult.Location;
+			SuccessfulHit(Owner.Get(), HookMovementHitResult.Location);
+		}
+		else
+		{
+			HookshotStatus = EHookshotStatus::Retracting;
+		}
 		return;
 	}
 	else

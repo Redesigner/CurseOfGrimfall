@@ -12,6 +12,10 @@ float UHealthComponent::GetMaxHealth() const
 
 float UHealthComponent::AddHealth(float Health)
 {
+	if (Health < 0.0f && CurrentHealth > 0.0f)
+	{
+		OnTakeDamage.Broadcast();
+	}
 	if (Health + CurrentHealth > MaxHealth)
 	{
 		CurrentHealth = MaxHealth;

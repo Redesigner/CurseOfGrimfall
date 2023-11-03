@@ -44,6 +44,11 @@ void ADoor::Tick(float DeltaTime)
 
 void ADoor::Interact(AFociCharacter* Source)
 {
+	if (bDoorLocked)
+	{
+		return;
+	}
+
 	FlipDoor(Source->GetActorLocation());
 
 	if (GameMode)
@@ -95,6 +100,11 @@ void ADoor::Interact(AFociCharacter* Source)
 	TimerManager.SetTimer(DoorSequenceTimer, SequenceEndDelegate, 4.0f, false);
 	TimerManager.SetTimer(DoorCloseTimer, DoorCloseDelegate, 3.0f, false);
 	TimerManager.SetTimer(PlayerMoveTimer, PlayerMoveDelegate, 2.0f, false);
+}
+
+void ADoor::SetLocked(bool bLocked)
+{
+	bDoorLocked = bLocked;
 }
 
 void ADoor::FlipDoor(FVector PlayerLocation)
