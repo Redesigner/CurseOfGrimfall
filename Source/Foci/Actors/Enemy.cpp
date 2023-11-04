@@ -58,7 +58,7 @@ void AEnemy::MoveForward()
 
 void AEnemy::OnDeath()
 {
-	DropTable->SpawnDrops(GetActorLocation(), GetActorRotation(), 500.0f);
+	DropTable->SpawnDrops(GetActorLocation(), GetActorRotation(), 300.0f);
 	MovementComponent->SetMovementMode(EEnemyMovementMode::MOVE_None);
 	SetLifeSpan(3.0f);
 	Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);

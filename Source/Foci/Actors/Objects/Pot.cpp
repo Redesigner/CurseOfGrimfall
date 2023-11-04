@@ -10,7 +10,7 @@ APot::APot()
 
 void APot::Break()
 {
-	DropTable->SpawnDrops(GetActorLocation() + FVector(0.0f, 0.0f, 5.0f), GetActorRotation(), 500.0f);
+	DropTable->SpawnDrops(GetActorLocation() + FVector(0.0f, 0.0f, 5.0f), GetActorRotation(), 300.0f);
 	OnBreak();
 	SetLifeSpan(3.0f);
 }

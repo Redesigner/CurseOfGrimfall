@@ -169,7 +169,7 @@ bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVe
 	// GetWorld()->LineTraceSingleByObjectType(ArmorTestResult, StartLocation, EndLocation, QueryParams);
 	// We hit some armor!
 	// UE_LOG(LogTemp, Display, TEXT("Checking if hit blocked. Sweeping along trace channel '%s"), *UEnum::GetDisplayValueAsText<ECollisionChannel>(BlockCollisionChannel).ToString())
-	DrawDebugDirectionalArrow(GetWorld(), StartLocation, EndLocation, 3.0f, FColor::Red, false, 2.0f);
+	// DrawDebugDirectionalArrow(GetWorld(), StartLocation, EndLocation, 3.0f, FColor::Red, false, 2.0f);
 	if (ArmorTestResult.bBlockingHit)
 	{
 		if (UArmorComponent* ArmorComponent = Cast<UArmorComponent>(ArmorTestResult.GetComponent()->GetAttachParent()))

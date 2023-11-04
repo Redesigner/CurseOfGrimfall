@@ -29,7 +29,7 @@ void UDropTable::SpawnDrops(FVector SpawnLocation, FRotator SpawnRotation, float
 	{
 		AActor* Actor = GetWorld()->SpawnActor(Pickup, &SpawnLocation, &SpawnRotation);
 		float BurstAngle = FMath::RandRange(-PI, PI);
-		FVector BurstVelocity = FVector(FMath::Cos(BurstAngle), FMath::Sin(BurstAngle), 0.0f) * BurstSpeed;
+		FVector BurstVelocity = FVector(FMath::Cos(BurstAngle), FMath::Sin(BurstAngle), 2.5f) * BurstSpeed;
 
 		APickup* PickupActor = Cast<APickup>(Actor);
 		PickupActor->Velocity = (BurstVelocity);

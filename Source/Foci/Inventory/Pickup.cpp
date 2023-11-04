@@ -23,15 +23,16 @@ void APickup::Tick(float DeltaTime)
 
 	if (Velocity.IsNearlyZero())
 	{
+		bIsMoving = false;
 		return;
 	}
 	FHitResult HitResult;
-	Velocity += FVector::UnitZ() * GetWorld()->GetGravityZ() * DeltaTime;
+	Velocity += FVector::UnitZ() * GetWorld()->GetGravityZ() * DeltaTime * 2.0f;
 	RootComponent->MoveComponent(Velocity * DeltaTime, RootComponent->GetComponentRotation(), true, &HitResult);
 	if (HitResult.bBlockingHit)
 	{
-		Velocity = FVector::Zero();
-		bIsMoving = false;
+		Velocity -= Velocity.Dot(HitResult.ImpactNormal) * HitResult.ImpactNormal;
+		// bIsMoving = false;
 	}
 }
 
