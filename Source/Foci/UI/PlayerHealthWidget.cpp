@@ -9,6 +9,10 @@
 void UPlayerHealthWidget::BindViewModel(UDialogViewModel* Model)
 {
 	Super::BindViewModel(Model);
+	if (!ViewModel.IsValid())
+	{
+		return;
+	}
 	UpdateHealth(Model->GetHealth(), Model->GetMaxHealth());
 	ViewModel->OnHealthUpdated.AddDynamic(this, &UPlayerHealthWidget::UpdateHealth);
 }

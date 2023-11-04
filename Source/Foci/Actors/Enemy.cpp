@@ -28,7 +28,7 @@ AEnemy::AEnemy(const FObjectInitializer& ObjectInitializer)
 	DropTable = CreateDefaultSubobject<UDropTable>(TEXT("Drop Table"));
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("Health Component"));
-	HealthComponent->OnDeath.AddDynamic(this, &AEnemy::OnDeath);
+	// HealthComponent->OnDeath.AddDynamic(this, &AEnemy::OnDeath);
 }
 
 UHealthComponent* AEnemy::GetHealthComponent() const

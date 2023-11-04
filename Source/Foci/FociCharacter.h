@@ -51,6 +51,10 @@ class AFociCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* ReticleWidget;
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Components, meta = (AllowPrivateAccess = "true"))
+	class UDialogViewModel* ViewModel;
 	/** ===== END COMPONENTS ===== **/
 
 
@@ -141,10 +145,6 @@ public:
 
 	virtual void PossessedBy(AController* NewController) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Dialog)
-	class UDialogViewModel* DialogViewModel;
-
-
 
 protected:
 
@@ -200,6 +200,12 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnDamaged();
+
+	UFUNCTION()
+	void HitBlocked(const FHitResult& HitResult);
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnHitBlocked(const FHitResult& HitResult);
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -267,6 +273,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UInventoryTable* GetInventory();
+
+	class UDialogViewModel* GetViewModel() const;
 
 	UFUNCTION()
 	void OnDeath_Internal();

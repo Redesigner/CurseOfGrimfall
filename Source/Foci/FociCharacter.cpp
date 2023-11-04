@@ -98,10 +98,10 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
-	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
-	DialogViewModel->SetModel(this);
-	DialogViewModel->HealthChanged(HealthComponent->GetCurrentHealth(), 1.0f);
-	DialogViewModel->MaxHealthChanged(HealthComponent->GetMaxHealth());
+	ViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
+	ViewModel->SetModel(this);
+	ViewModel->HealthChanged(HealthComponent->GetCurrentHealth(), 1.0f);
+	ViewModel->MaxHealthChanged(HealthComponent->GetMaxHealth());
 
 	Inventory = CreateDefaultSubobject<UInventoryTable>(TEXT("Inventory"));
 }
@@ -152,14 +152,22 @@ void AFociCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-	// Bind the viewmodel here, just to be safe, and refresh the health state
-	HealthComponent->OnHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::HealthChanged);
-	HealthComponent->OnMaxHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::MaxHealthChanged);
 
-	Inventory->OnInventoryItemCountChanged.AddDynamic(DialogViewModel, &UDialogViewModel::InventoryItemCountChanged);
+	if (!ViewModel)
+	{
+		UE_LOG(LogTemp, Error, TEXT("DialogViewModel failed to load correctly."));
+		return;
+	}
+	// Bind the viewmodel here, just to be safe, and refresh the health state
+	HealthComponent->OnHealthChanged.AddDynamic(ViewModel, &UDialogViewModel::HealthChanged);
+	HealthComponent->OnMaxHealthChanged.AddDynamic(ViewModel, &UDialogViewModel::MaxHealthChanged);
+
+	Inventory->OnInventoryItemCountChanged.AddDynamic(ViewModel, &UDialogViewModel::InventoryItemCountChanged);
 
 	HealthComponent->OnTakeDamage.AddDynamic(this, &AFociCharacter::Damaged);
 	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
+
+	HitboxController->HitInterruptedDelegate.BindUObject(this, &AFociCharacter::HitBlocked);
 }
 
 bool AFociCharacter::CanJumpInternal_Implementation() const
@@ -363,6 +371,11 @@ bool AFociCharacter::IsWeaponReady() const
 UInventoryTable* AFociCharacter::GetInventory()
 {
 	return Inventory;
+}
+
+UDialogViewModel* AFociCharacter::GetViewModel() const
+{
+	return ViewModel;
 }
 
 void AFociCharacter::OnDeath_Internal()
@@ -784,6 +797,11 @@ void AFociCharacter::Damaged()
 	OnDamaged();
 }
 
+void AFociCharacter::HitBlocked(const FHitResult& HitResult)
+{
+	OnHitBlocked(HitResult);
+}
+
 
 float AFociCharacter::GetTetherLength() const
 {
@@ -800,7 +818,7 @@ const FDialogResponse& AFociCharacter::GetDialog() const
 void AFociCharacter::SetDialog(FDialogResponse Dialog)
 {
 	CurrentDialog = Dialog;
-	DialogViewModel->SetDialog(CurrentDialog);
+	ViewModel->SetDialog(CurrentDialog);
 	UGameplayStatics::SetGamePaused(GetWorld(), !Dialog.IsEmpty());
 	
 	if (Dialog.IsEmpty())
@@ -833,7 +851,7 @@ void AFociCharacter::BindViewModel()
 	UMVVMViewModelBase* ViewModelBase = ViewModelCollection->FindViewModelInstance(DialogViewModelContext);
 	if (ViewModelBase)
 	{
-		DialogViewModel = Cast<UDialogViewModel>(ViewModelBase);
+		ViewModel = Cast<UDialogViewModel>(ViewModelBase);
 		return;
 	}
 	if (ViewModelCollection->AddViewModelInstance(DialogViewModelContext, NewObject<UDialogViewModel>()))

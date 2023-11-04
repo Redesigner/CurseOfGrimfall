@@ -17,6 +17,11 @@ void UDialogWidget::BindViewModel(UDialogViewModel* Model)
 	Super::BindViewModel(Model);
 
 	DialogTextBlock->BindViewModel(Model);
+
+	if (!ViewModel.IsValid())
+	{
+		return;
+	}
 	ViewModel->SetDialogView(this);
 	ViewModel->OnDialogTextChanged.AddDynamic(DialogTextBlock, &UDialogTextBlock::SetDialog);
 	ViewModel->OnDialogTextChanged.AddDynamic(this, &UDialogWidget::DialogChanged);

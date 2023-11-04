@@ -7,7 +7,17 @@
 void UViewModelWidget::NativeConstruct()
 {
 	AFociCharacter* FociCharacter = Cast<AFociCharacter>(GetOwningPlayer()->GetCharacter());
-	BindViewModel(FociCharacter->DialogViewModel);
+	if (!FociCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Unable to get character for viewmodel."));
+		return;
+	}
+	if (!FociCharacter->GetViewModel())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Unable to viewmodel from character."));
+		return;
+	}
+	BindViewModel(FociCharacter->GetViewModel());
 }
 
 void UViewModelWidget::BindViewModel(UDialogViewModel* Model)

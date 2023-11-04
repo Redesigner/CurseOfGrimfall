@@ -172,7 +172,8 @@ bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVe
 	// DrawDebugDirectionalArrow(GetWorld(), StartLocation, EndLocation, 3.0f, FColor::Red, false, 2.0f);
 	if (ArmorTestResult.bBlockingHit)
 	{
-		if (UArmorComponent* ArmorComponent = Cast<UArmorComponent>(ArmorTestResult.GetComponent()->GetAttachParent()))
+		USceneComponent* ParentComponent = ArmorTestResult.GetComponent()->GetAttachParent();
+		if (UArmorComponent* ArmorComponent = Cast<UArmorComponent>(ParentComponent))
 		{
 			// Convert our armor's built-in impact normal to world space
 			ArmorTestResult.Normal = ArmorComponent->GetComponentRotation().RotateVector(ArmorComponent->GetNormal());
