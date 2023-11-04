@@ -164,10 +164,10 @@ void AFociCharacter::BeginPlay()
 
 	Inventory->OnInventoryItemCountChanged.AddDynamic(ViewModel, &UDialogViewModel::InventoryItemCountChanged);
 
-	HealthComponent->OnTakeDamage.AddDynamic(this, &AFociCharacter::Damaged);
-	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
+	HealthComponent->OnTakeDamage.AddUniqueDynamic(this, &AFociCharacter::Damaged);
+	HealthComponent->OnDeath.AddUniqueDynamic(this, &AFociCharacter::OnDeath_Internal);
 
-	HitboxController->HitInterruptedDelegate.BindUObject(this, &AFociCharacter::HitBlocked);
+	HitboxController->HitBlockedDelegate.BindUObject(this, &AFociCharacter::HitBlocked);
 }
 
 bool AFociCharacter::CanJumpInternal_Implementation() const
@@ -483,7 +483,7 @@ void AFociCharacter::Attack()
 	bAttacking = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(AttackMontage);
-	AnimInstance->OnMontageEnded.AddDynamic(this, &AFociCharacter::OnAttackMontageEnded);
+	AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &AFociCharacter::OnAttackMontageEnded);
 }
 
 void AFociCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)

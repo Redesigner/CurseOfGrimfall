@@ -148,6 +148,7 @@ void UHitboxController::AccumulateOverlaps(UPrimitiveComponent* OverlappedCompon
 void UHitboxController::ClearOverlaps()
 {
 	QueuedHits.Empty();
+	ComponentsBlocked.Empty();
 }
 
 void UHitboxController::SetCurrentGameplayAbilitySpec(const FGameplayAbilitySpec* AbilitySpec)
@@ -156,7 +157,7 @@ void UHitboxController::SetCurrentGameplayAbilitySpec(const FGameplayAbilitySpec
 }
 
 
-bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVector& HitLocation) const
+bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVector& HitLocation)
 {
 	FHitResult ArmorTestResult;
 	FCollisionObjectQueryParams QueryParams;
@@ -175,11 +176,28 @@ bool UHitboxController::GetIsHitBlocked(const UArmorComponent* Hitbox, const FVe
 		USceneComponent* ParentComponent = ArmorTestResult.GetComponent()->GetAttachParent();
 		if (UArmorComponent* ArmorComponent = Cast<UArmorComponent>(ParentComponent))
 		{
+			if (HitPreviouslyBlocked(ArmorComponent))
+			{
+				return true;
+			}
 			// Convert our armor's built-in impact normal to world space
 			ArmorTestResult.Normal = ArmorComponent->GetComponentRotation().RotateVector(ArmorComponent->GetNormal());
 			ArmorComponent->OwningHitboxController->HitBlockedDelegate.ExecuteIfBound(ArmorTestResult);
+			ComponentsBlocked.Add(ArmorComponent);
 			// Hand this check off to the component itself
 			return ArmorComponent->CanBlockHit(Hitbox->OwningAbility);
+		}
+	}
+	return false;
+}
+
+bool UHitboxController::HitPreviouslyBlocked(UArmorComponent* BlockingComponent) const
+{
+	for (UArmorComponent* ArmorComponent : ComponentsBlocked)
+	{
+		if (ArmorComponent == BlockingComponent)
+		{
+			return true;
 		}
 	}
 	return false;

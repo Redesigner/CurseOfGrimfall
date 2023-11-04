@@ -100,7 +100,7 @@ void AEnemy::OnHit(APawn* Attacker)
 void AEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-	HealthComponent->OnDeath.AddDynamic(this, &AEnemy::OnDeath);
+	HealthComponent->OnDeath.AddUniqueDynamic(this, &AEnemy::OnDeath);
 }
 
 void AEnemy::Tick(float DeltaSeconds)

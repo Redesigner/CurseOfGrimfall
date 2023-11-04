@@ -71,8 +71,12 @@ private:
 	///		1) the part of the target that was hit
 	///		2) our base position
 	/// Additionally, check if the armor is 'strong' enough to block the hit
-	bool GetIsHitBlocked(const UArmorComponent* Hitbox, const FVector& HitLocation) const;
+	bool GetIsHitBlocked(const UArmorComponent* Hitbox, const FVector& HitLocation);
+
+	bool HitPreviouslyBlocked(UArmorComponent* BlockingComponent) const;
 
 	// It's got a little more state than I'd prefer, but ¯\_()_/¯
 	const FGameplayAbilitySpec* CurrentAbilitySpec;
+
+	TArray<UArmorComponent*> ComponentsBlocked;
 };
