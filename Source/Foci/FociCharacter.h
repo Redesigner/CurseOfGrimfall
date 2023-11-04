@@ -196,6 +196,12 @@ protected:
 	void OnDeath();
 
 	UFUNCTION()
+	void Damaged();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnDamaged();
+
+	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 

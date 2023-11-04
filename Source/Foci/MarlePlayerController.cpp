@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h" 
 
 #include "Foci/FociCharacter.h"
+#include "Foci/FociGameMode.h"
 #include "Foci/Components/HealthComponent.h"
 
 void AMarlePlayerController::OnPossess(APawn* InPawn)
@@ -31,8 +32,21 @@ void AMarlePlayerController::OnDeath()
 	{
 		return;
 	}
-	DeathWidget = CreateWidget<UUserWidget>(this, DeathWidgetClass, TEXT("Death Widget"));
-	DeathWidget->AddToViewport();
-	DeathWidget->SetOwningPlayer(this);
-	UGameplayStatics::SetGamePaused(GetWorld(), true);
+
+
+	if (AFociGameMode* GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld())) )
+	{
+		GameMode->bWorldActive = false;
+	}
+	FTimerHandle DeathTimerHandle;
+	FTimerDelegate DeathDelegate;
+	DeathDelegate.BindLambda([this]() {
+			DeathWidget = CreateWidget<UUserWidget>(this, DeathWidgetClass, TEXT("Death Widget"));
+			DeathWidget->AddToViewport();
+			DeathWidget->SetOwningPlayer(this);
+			UGameplayStatics::SetGamePaused(GetWorld(), true);
+			bShowMouseCursor = true;
+		});
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	TimerManager.SetTimer(DeathTimerHandle, DeathDelegate, 1.0f, false);
 }

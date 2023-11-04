@@ -2,6 +2,7 @@
 
 #include "Kismet/GameplayStatics.h" 
 
+#include "Foci/FociGameMode.h"
 #include "Foci/Actors/Enemy.h"
 #include "Foci/Components/Movement/EnemyMovementComponent.h"
 
@@ -106,6 +107,13 @@ bool AEnemyAIController::IsCloseToTarget(APawn* Target, float Distance) const
 
 void AEnemyAIController::TryExecuteAttack()
 {
+	if (AFociGameMode* GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld())))
+	{
+		if (!GameMode->bWorldActive)
+		{
+			return;
+		}
+	}
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	if (TimerManager.IsTimerActive(AttackTimerHandle))
 	{

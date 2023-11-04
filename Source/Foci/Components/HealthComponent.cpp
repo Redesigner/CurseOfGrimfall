@@ -14,6 +14,7 @@ float UHealthComponent::AddHealth(float Health)
 {
 	if (Health < 0.0f && CurrentHealth > 0.0f)
 	{
+		UE_LOG(LogTemp, Display, TEXT("HealthComponent taken damage."));
 		OnTakeDamage.Broadcast();
 	}
 	if (Health + CurrentHealth > MaxHealth)

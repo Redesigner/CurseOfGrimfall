@@ -97,8 +97,6 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	ReticleWidget->SetupAttachment(RootComponent);
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-	HealthComponent->OnTakeDamage.AddDynamic(this, &AFociCharacter::Damaged);
-	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
 
 	DialogViewModel = CreateDefaultSubobject<UDialogViewModel>(TEXT("Dialog Viewmodel"));
 	DialogViewModel->SetModel(this);
@@ -159,6 +157,9 @@ void AFociCharacter::BeginPlay()
 	HealthComponent->OnMaxHealthChanged.AddDynamic(DialogViewModel, &UDialogViewModel::MaxHealthChanged);
 
 	Inventory->OnInventoryItemCountChanged.AddDynamic(DialogViewModel, &UDialogViewModel::InventoryItemCountChanged);
+
+	HealthComponent->OnTakeDamage.AddDynamic(this, &AFociCharacter::Damaged);
+	HealthComponent->OnDeath.AddDynamic(this, &AFociCharacter::OnDeath_Internal);
 }
 
 bool AFociCharacter::CanJumpInternal_Implementation() const
@@ -314,6 +315,7 @@ void AFociCharacter::Interact()
 
 void AFociCharacter::SetFocusTarget(AEnemy* Target)
 {
+	CameraBoom->TargetArmLength = 300.0f;
 	bHasFocusTarget = true;
 	ReticleWidget->SetVisibility(true);
 	FocusTarget = Target;
@@ -331,6 +333,7 @@ void AFociCharacter::SetFocusTarget(AEnemy* Target)
 
 void AFociCharacter::ClearFocusTarget()
 {
+	CameraBoom->TargetArmLength = 400.0f;
 	bHasFocusTarget = false;
 	ReticleWidget->SetVisibility(false);
 	FocusTarget = nullptr;
@@ -487,12 +490,13 @@ void AFociCharacter::HitTarget_Internal(const FHitResult& HitResult)
 	{
 		Enemy->GetHealthComponent()->AddHealth(-1.0f);
 		Enemy->OnHit(this);
+		HitTarget(HitResult);
 	}
 	else if (APot* Pot = Cast<APot>(HitResult.GetActor()))
 	{
 		Pot->Break();
+		// HitTarget(HitResult);
 	}
-	HitTarget(HitResult);
 }
 
 
@@ -776,6 +780,7 @@ void AFociCharacter::FireWeapon()
 
 void AFociCharacter::Damaged()
 {
+	UE_LOG(LogTemp, Display, TEXT("Taken damage."));
 	OnDamaged();
 }
 

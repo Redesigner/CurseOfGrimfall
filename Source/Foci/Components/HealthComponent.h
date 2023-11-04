@@ -19,7 +19,7 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChanged;
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTakeDamage)
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTakeDamage);
 	UPROPERTY(BlueprintAssignable)
 	FOnTakeDamage OnTakeDamage;
 
