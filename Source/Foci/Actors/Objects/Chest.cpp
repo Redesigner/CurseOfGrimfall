@@ -3,25 +3,23 @@
 
 #include "Chest.h"
 
-// Sets default values
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+
+#include "Foci/FociCharacter.h"
+
 AChest::AChest()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	ChestMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	RootComponent = ChestMesh;
 
+	PlayerOpenTransform = CreateDefaultSubobject<USceneComponent>(TEXT("PlayerOpenTransform"));
+	PlayerOpenTransform->SetupAttachment(RootComponent);
 }
 
-// Called when the game starts or when spawned
-void AChest::BeginPlay()
+void AChest::Interact(AFociCharacter* Source)
 {
-	Super::BeginPlay();
-	
+	Source->SetActorLocationAndRotation(PlayerOpenTransform->GetComponentLocation(), PlayerOpenTransform->GetComponentQuat());
+	OnOpen(Source);
+	Source->GrantWeapon(ContainedWeapon);
 }
-
-// Called every frame
-void AChest::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-

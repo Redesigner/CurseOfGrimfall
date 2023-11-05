@@ -28,6 +28,7 @@
 #include "Foci/Actors/Objects/PushableBlock.h"
 #include "Foci/Actors/Objects/Pot.h"
 #include "Foci/Components/WeaponTool.h"
+#include "Foci/FociGameMode.h"
 #include "InteractableInterface.h"
 #include "Foci/DialogComponent.h"
 #include "Foci/Components/HealthComponent.h"
@@ -508,6 +509,10 @@ void AFociCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 
 void AFociCharacter::PlayCutscene(UAnimMontage* Montage, FCutsceneEndDelegate CutsceneEndDelegate)
 {
+	if (AFociGameMode* GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld())) )
+	{
+		GameMode->bWorldActive = false;
+	}
 	ReleaseWeapon();
 	DisableFirstPerson();
 	SetInputEnabled(false);
@@ -860,6 +865,14 @@ void AFociCharacter::RequestDialogFromLastNpc(FDialogRequest DialogRequest)
 {
 	if (!LastInteractedNPC.IsValid())
 	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance->IsAnyMontagePlaying())
+		{
+			AnimInstance->Montage_SetNextSection("End", "PostEnd");
+			SetDialog(FDialogResponse());
+			CinematicCamera->SetActive(false);
+			GetFollowCamera()->SetActive(true);
+		}
 		return;
 	}
 	LastInteractedNPC->RequestDialog(this, DialogRequest);

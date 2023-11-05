@@ -179,9 +179,6 @@ protected:
 
 	void ReleaseWeapon();
 
-	UFUNCTION(BlueprintCallable)
-	void GrantWeapon(TSubclassOf<class AWeaponTool> Weapon);
-
 
 	UFUNCTION()
 	void Attack();
@@ -212,6 +209,8 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void OnHitBlocked(const FHitResult& HitResult);
+
+
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -263,6 +262,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetFocusTarget(class AEnemy* Target);
+
+	UFUNCTION(BlueprintCallable)
+	void GrantWeapon(TSubclassOf<class AWeaponTool> Weapon);
 
 	UFUNCTION(BlueprintCallable)
 	void ClearFocusTarget();
