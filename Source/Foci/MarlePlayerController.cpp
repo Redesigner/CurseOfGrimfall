@@ -48,5 +48,5 @@ void AMarlePlayerController::OnDeath()
 			bShowMouseCursor = true;
 		});
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-	TimerManager.SetTimer(DeathTimerHandle, DeathDelegate, 1.0f, false);
+	TimerManager.SetTimer(DeathTimerHandle, DeathDelegate, 3.0f, false);
 }

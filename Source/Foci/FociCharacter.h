@@ -31,6 +31,9 @@ class AFociCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FirstPersonCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* CinematicCamera;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Components, meta = (AllowPrivateAccess = "true"))
 	class USphereComponent* InteractTrigger;
 
@@ -176,6 +179,9 @@ protected:
 
 	void ReleaseWeapon();
 
+	UFUNCTION(BlueprintCallable)
+	void GrantWeapon(TSubclassOf<class AWeaponTool> Weapon);
+
 
 	UFUNCTION()
 	void Attack();
@@ -209,7 +215,6 @@ protected:
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
 
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -287,6 +292,15 @@ public:
 	float GetTetherLength() const;
 
 	void SetTetherLength(float Length);
+
+
+	DECLARE_DYNAMIC_DELEGATE(FCutsceneEndDelegate);
+	UFUNCTION(BlueprintCallable)
+	void PlayCutscene(UAnimMontage* Montage, FCutsceneEndDelegate CutsceneEndDelegate);
+
+	// UFUNCTION()
+	// void OnCutsceneEnded()
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Cheats, meta = (AllowPrivateAccess = "true"))
 	bool bImmortal = false;

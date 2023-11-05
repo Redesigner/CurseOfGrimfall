@@ -79,6 +79,9 @@ AFociCharacter::AFociCharacter(const FObjectInitializer& ObjectInitializer)
 	FirstPersonCamera->SetupAttachment(RootComponent);
 	FirstPersonCamera->bUsePawnControlRotation = true;
 
+	CinematicCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CinematicCamera"));
+	CinematicCamera->SetupAttachment(GetMesh(), TEXT("Camera"));
+
 	InteractTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("Interact Trigger"));
 	InteractTrigger->SetupAttachment(RootComponent);
 
@@ -405,7 +408,7 @@ void AFociCharacter::EnableFirstPerson()
 	bFirstPersonMode = true;
 	MarleMovementComponent->bUseControllerDesiredRotation = true;
 	MarleMovementComponent->bOrientRotationToMovement = false;
-	GetMesh()->SetVisibility(false);
+	GetMesh()->SetVisibility(false, true);
 	ViewMesh->SetVisibility(true);
 
 	if (CurrentWeapon)
@@ -425,7 +428,7 @@ void AFociCharacter::DisableFirstPerson()
 	{
 		MarleMovementComponent->bOrientRotationToMovement = true;
 	}
-	GetMesh()->SetVisibility(true);
+	GetMesh()->SetVisibility(true, true);
 	ViewMesh->SetVisibility(false);
 
 	if (CurrentWeapon)
@@ -465,6 +468,12 @@ void AFociCharacter::FallDeath()
 	{
 		SetActorLocationAndRotation(FociGameMode->LastSpawnLocation, FociGameMode->LastSpawnRotation);
 	}
+	FTimerHandle FallDamageTimer;
+	FTimerDelegate FallDamageDelegate;
+	FallDamageDelegate.BindLambda([this](){
+			HealthComponent->AddHealth(-1.0f);
+		});
+	GetWorld()->GetTimerManager().SetTimer(FallDamageTimer, FallDamageDelegate, 0.5f, false);
 }
 
 
@@ -483,6 +492,7 @@ void AFociCharacter::Attack()
 	bAttacking = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	AnimInstance->Montage_Play(AttackMontage);
+	AnimInstance->OnMontageEnded.Clear();
 	AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &AFociCharacter::OnAttackMontageEnded);
 }
 
@@ -494,6 +504,20 @@ void AFociCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupt
 	{
 		RaiseShield();
 	}
+}
+
+void AFociCharacter::PlayCutscene(UAnimMontage* Montage, FCutsceneEndDelegate CutsceneEndDelegate)
+{
+	ReleaseWeapon();
+	DisableFirstPerson();
+	SetInputEnabled(false);
+	GetFollowCamera()->SetActive(false);
+	CinematicCamera->SetActive(true);
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(Montage);
+	AnimInstance->OnMontageEnded.Clear();
+	AnimInstance->OnMontageEnded.AddUnique(CutsceneEndDelegate);
 }
 
 
@@ -777,6 +801,11 @@ void AFociCharacter::ReleaseWeapon()
 	}
 	CurrentWeapon = nullptr;
 	bWeaponReady = false;
+}
+
+void AFociCharacter::GrantWeapon(TSubclassOf<AWeaponTool> Weapon)
+{
+	Weapons.AddUnique(Weapon);
 }
 
 
