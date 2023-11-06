@@ -62,6 +62,15 @@ public:
 	UFUNCTION()
 	void OnChainBroken();
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void ChainBroken();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnChainFired();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnChainEnded();
+
 private:
 	void SuccessfulHit(ACharacter* Character, FVector Location);
 

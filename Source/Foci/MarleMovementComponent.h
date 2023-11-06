@@ -65,6 +65,9 @@ class FOCI_API UMarleMovementComponent : public UCharacterMovementComponent
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Tethered, Transient, meta = (AllowPrivateAccess = "true"))
 	float TetherVelocity = 750.0f;
 
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = Pushing, meta = (AllowPrivateAccess = "true"))
+	USoundBase* PushSound;
+
 
 protected:
 	virtual bool MoveUpdatedComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, ETeleportType Teleport) override;
@@ -92,6 +95,7 @@ public:
 	// A delegate to work with our virtual function
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnMovementModeUpdated, EMovementMode, NewMovementMode, uint8, NewCustomMode,
 		EMovementMode, PreviousMovementMode, uint8, PreviousCustomMode);
+	UPROPERTY(BlueprintAssignable)
 	FOnMovementModeUpdated OnMovementModeUpdated;
 
 	UFUNCTION(BlueprintCallable)

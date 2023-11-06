@@ -6,6 +6,7 @@
 #include "VisualLogger/VisualLogger.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Ladder.h"
 #include "FociCharacter.h"
@@ -264,6 +265,7 @@ void UMarleMovementComponent::PhysPulling(float DeltaTime, int32 Iterations)
 	{
 		bPushingMove = true;
 		PushCurrentTime = 0.0f;
+		UGameplayStatics::PlaySound2D(GetWorld(), PushSound);
 	}
 }
 

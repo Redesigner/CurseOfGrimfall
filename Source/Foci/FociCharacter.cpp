@@ -735,7 +735,7 @@ void AFociCharacter::Slot2Released(const FInputActionValue& Value)
 
 void AFociCharacter::SlotPressed(uint8 SlotIndex)
 {
-	if (!Weapons[SlotIndex])
+	if (Weapons.Num() <= SlotIndex || !Weapons[SlotIndex])
 	{
 		UE_LOG(LogWeaponSystem, Warning, TEXT("Weapon slot '%i' is null. Check that the weapon has been assigned properly."), SlotIndex)
 		return;
@@ -770,6 +770,11 @@ void AFociCharacter::SlotPressed(uint8 SlotIndex)
 
 void AFociCharacter::SlotReleased(uint8 SlotIndex)
 {
+	if (Weapons.Num() <= SlotIndex || !Weapons[SlotIndex])
+	{
+		UE_LOG(LogWeaponSystem, Warning, TEXT("Weapon slot '%i' is null. Check that the weapon has been assigned properly."), SlotIndex);
+		return;
+	}
 	// UE_LOG(LogWeaponSystem, Display, TEXT("Weapon at slot '%i' fired!"), SlotIndex)
 	if (!bWeaponDrawn || !bWeaponReady)
 	{

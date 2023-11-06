@@ -63,7 +63,7 @@ public:
 	UFUNCTION()
 	void HitTarget_Internal(const FHitResult& HitResult);
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void OnHit(APawn* Attacker);
 
 	virtual void BeginPlay() override;

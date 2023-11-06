@@ -66,6 +66,7 @@ void AHookshot::Fire(AFociCharacter* Character, FVector DefaultOrigin, FRotator 
 	Owner = Character;
 	Character->SetInputEnabled(false);
 	Super::Fire(Character, DefaultOrigin, DefaultRotation);
+	OnChainFired();
 }
 
 void AHookshot::SetFirstPerson()
@@ -142,6 +143,7 @@ void AHookshot::Retract(float DeltaTime)
 		HookshotStatus = EHookshotStatus::Ready;
 		if (Owner.IsValid())
 		{
+			OnChainEnded();
 			Owner->SetInputEnabled(true);
 		}
 	}
@@ -175,6 +177,7 @@ EHookshotStatus AHookshot::GetHookshotStatus() const
 void AHookshot::OnChainBroken()
 {
 	HookshotStatus = EHookshotStatus::Retracting;
+	ChainBroken();
 }
 
 void AHookshot::SuccessfulHit(ACharacter* Character, FVector Location)
@@ -187,6 +190,7 @@ void AHookshot::SuccessfulHit(ACharacter* Character, FVector Location)
 	HookshotStatus = EHookshotStatus::Pulling;
 	MarleMovementComponent->ActivateTether(Location);
 	// FociCharacter->SetInputEnabled(false);
+	ChainBroken();
 }
 
 void AHookshot::UpdateVisuals()
