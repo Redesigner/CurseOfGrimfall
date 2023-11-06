@@ -15,7 +15,10 @@ UCLASS()
 class FOCI_API UAnimNotify_DisplayDialog : public UAnimNotify
 {
 	GENERATED_BODY()
+
+#if WITH_EDITOR
 	virtual bool ShouldFireInEditor() override;
+#endif
 	
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 

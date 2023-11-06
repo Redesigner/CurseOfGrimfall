@@ -47,6 +47,7 @@ void UEnemyMovementComponent::BeginPlay()
 	GameMode = Cast<AFociGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 }
 
+#if WITH_EDITOR
 void UEnemyMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -56,6 +57,7 @@ void UEnemyMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& Prop
 		MaxFloorWalkableZ = FMath::Sin(FMath::DegreesToRadians(MaxFloorWalkableAngle));
 	}
 }
+#endif
 
 void UEnemyMovementComponent::HandleBlockingImpact(FHitResult ImpactHitResult)
 {

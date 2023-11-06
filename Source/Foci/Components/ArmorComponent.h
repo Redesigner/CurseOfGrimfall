@@ -73,13 +73,13 @@ public:
 
 private:
 
-	#if WITH_EDITORONLY_DATA
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(VisibleAnywhere)
 	class UArrowComponent* DirectionalArrow;
+#endif
 
 	UPROPERTY()
 	class UShapeComponent* Shape;
-	#endif
 
 	FVector Normal;
 };

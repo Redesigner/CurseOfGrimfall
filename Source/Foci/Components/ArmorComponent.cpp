@@ -15,10 +15,12 @@ UArmorComponent::UArmorComponent(const FObjectInitializer& ObjectInitializer)
 
 void UArmorComponent::DestroyComponent(bool bPromoteChildren)
 {
+#if WITH_EDITOR
     if (DirectionalArrow)
     {
         DirectionalArrow->DestroyComponent();
     }
+#endif
     if (Shape)
     {
         Shape->DestroyComponent();

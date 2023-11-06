@@ -18,7 +18,10 @@ class FOCI_API UAnimNotify_SetComboState : public UAnimNotify
 
 public:
 
+#if WITH_EDITOR
 	virtual bool ShouldFireInEditor() override;
+#endif
+
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)

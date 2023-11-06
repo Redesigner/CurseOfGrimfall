@@ -13,8 +13,10 @@ UCLASS()
 class FOCI_API UAnimNotify_SpawnActor : public UAnimNotifyState
 {
 	GENERATED_BODY()
-	
+
+#if WITH_EDITOR
 	virtual bool ShouldFireInEditor() override;
+#endif
 
 	virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
 

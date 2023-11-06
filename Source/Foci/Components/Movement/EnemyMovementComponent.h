@@ -23,7 +23,9 @@ class FOCI_API UEnemyMovementComponent : public UPawnMovementComponent
 protected:
 	virtual void BeginPlay() override;
 
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 
 	virtual void HandleBlockingImpact(FHitResult ImpactHitResult);

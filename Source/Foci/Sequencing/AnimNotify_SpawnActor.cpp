@@ -3,10 +3,12 @@
 
 #include "AnimNotify_SpawnActor.h"
 
+#if WITH_EDITOR
 bool UAnimNotify_SpawnActor::ShouldFireInEditor()
 {
 	return false;
 }
+#endif
 
 void UAnimNotify_SpawnActor::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {

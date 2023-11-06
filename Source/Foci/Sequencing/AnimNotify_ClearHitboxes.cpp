@@ -7,15 +7,17 @@
 
 UAnimNotify_ClearHitboxes::UAnimNotify_ClearHitboxes()
 {
+#if WITH_EDITOR
 	bShouldFireInEditor = false;
+#endif
 }
 
-
+#if WITH_EDITOR
 bool UAnimNotify_ClearHitboxes::ShouldFireInEditor()
 {
 	return false;
 }
-
+#endif
 
 void UAnimNotify_ClearHitboxes::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {

@@ -85,6 +85,7 @@ void UAnimNotify_Hitbox::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequen
 	}
 }
 
+#if WITH_EDITOR
 void UAnimNotify_Hitbox::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -96,3 +97,4 @@ void UAnimNotify_Hitbox::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 	}
 	*/
 }
+#endif

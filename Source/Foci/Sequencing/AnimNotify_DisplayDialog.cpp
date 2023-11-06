@@ -5,10 +5,12 @@
 
 #include "Foci/FociCharacter.h"
 
+#if WITH_EDITOR
 bool UAnimNotify_DisplayDialog::ShouldFireInEditor()
 {
 	return false;
 }
+#endif
 
 void UAnimNotify_DisplayDialog::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
